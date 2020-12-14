@@ -1,2 +1,5 @@
 psutil
 pythonnet
+gputil
+tabulate
+wmi

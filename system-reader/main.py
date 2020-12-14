@@ -195,28 +195,37 @@ c = wmi.WMI()
 # for s in c.MSAcpi_ThermalZoneTemperature.methods.keys():
 #     print(s)
 
+print("="*40, "WMI Win32_TemperatureProbe", "="*40)
 for s in c.Win32_TemperatureProbe():
     print(f"Name: {s.Name}")
     print(f"Caption: {s.Caption}")
     print(f"Description: {s.Description}")
+
+print("="*40, "WMI CIM_TemperatureSensor", "="*40)
 for s in c.CIM_TemperatureSensor():
     print(f"Name: {s.Name}")
     print(f"Caption: {s.Caption}")
     print(f"Description: {s.Description}")
+
+
+print("="*40, "WMI Win32_OperatingSystem", "="*40)
 for os in c.Win32_OperatingSystem():
   print(os.Caption)
 
 
 # Needs administrator rights
+# One value on Gigabyte: TZ00_0 28 Celcius
+print("="*40, "WMI MSAcpi_ThermalZoneTemperature", "="*40)
 c = wmi.WMI(namespace="WMI")
 for s in c.MSAcpi_ThermalZoneTemperature():
     # print(s)
     print("{}: {}°C".format(s.InstanceName, s.CurrentTemperature/10 - 273))
 
-# Supposed to have "CurrentReading" in Stackoverflow but don't have it on laptop
+# Supposed to have "CurrentReading" in Stackoverflow but don't have it on laptop OR gigabyte
+print("="*40, "WMI Win32_TemperatureProbe", "="*40)
 c = wmi.WMI()
 for s in c.Win32_TemperatureProbe():
-    # print(s)
+    print(s)
     print("{} MinReadable: {}°C, MaxReadable: {}°C".format(s.DeviceID, s.MinReadable/10 - 273, s.MaxReadable/10 - 273))
 
 
