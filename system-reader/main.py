@@ -1,7 +1,4 @@
-# This is a sample Python script.
-
-# Press Shift+F10 to execute it or replace it with your code.
-# Press Double Shift to search everywhere for classes, files, tool windows, actions, and settings.
+# -*- coding: utf-8 -*-
 
 import psutil
 import platform
@@ -194,6 +191,10 @@ print(tabulate(list_gpus, headers=("id", "name", "load", "free memory", "used me
 
 import wmi
 c = wmi.WMI()
+
+# for s in c.MSAcpi_ThermalZoneTemperature.methods.keys():
+#     print(s)
+
 for s in c.Win32_TemperatureProbe():
     print(f"Name: {s.Name}")
     print(f"Caption: {s.Caption}")
@@ -202,3 +203,44 @@ for s in c.CIM_TemperatureSensor():
     print(f"Name: {s.Name}")
     print(f"Caption: {s.Caption}")
     print(f"Description: {s.Description}")
+for os in c.Win32_OperatingSystem():
+  print(os.Caption)
+
+
+# Needs administrator rights
+c = wmi.WMI(namespace="WMI")
+for s in c.MSAcpi_ThermalZoneTemperature():
+    # print(s)
+    print("{}: {}°C".format(s.InstanceName, s.CurrentTemperature/10 - 273))
+
+# Supposed to have "CurrentReading" in Stackoverflow but don't have it on laptop
+c = wmi.WMI()
+for s in c.Win32_TemperatureProbe():
+    # print(s)
+    print("{} MinReadable: {}°C, MaxReadable: {}°C".format(s.DeviceID, s.MinReadable/10 - 273, s.MaxReadable/10 - 273))
+
+
+
+# wql = "SELECT * FROM MSAcpi_ThermalZoneTemperature"
+# for disk in c.query(wql):
+#     print(disk.CurrentTemperature)
+# strComputer = "."
+# Set objWMIService = GetObject("winmgmts:\\" & strComputer & "\root\WMI")
+# Set colItems = objWMIService.ExecQuery( _
+#     "SELECT * FROM MSAcpi_ThermalZoneTemperature",,48)
+# For Each objItem in colItems
+#     Wscript.Echo "-----------------------------------"
+#     Wscript.Echo "MSAcpi_ThermalZoneTemperature instance"
+#     Wscript.Echo "-----------------------------------"
+#     Wscript.Echo "CurrentTemperature: " & objItem.CurrentTemperature
+# Next
+
+# c = wmi.WMI(namespace="WMI")
+# for s in c.MSAcpi_ThermalZoneTemperature():
+#     pass
+    # print(s)
+    # print(f"Name: {s.Name}")
+    # print(f"Caption: {s.Caption}")
+    # print(f"Description: {s.Description}")
+    # print(f"CurrentTemperature: {s.CurrentTemperature}")
+
