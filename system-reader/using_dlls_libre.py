@@ -94,8 +94,8 @@ def initialize_librehardwaremonitor():
 
 
 def fetch_stats(handle):
-    from pprint import pprint
-    pprint(handle.Hardware)
+    # from pprint import pprint
+    # pprint(handle.Hardware)
     for i in handle.Hardware:
         i.Update()
         print(i.Name)
@@ -112,7 +112,7 @@ def fetch_stats(handle):
 def parse_sensor(sensor):
     # print(sensor.Value)
     if sensor.Value is not None:
-        print(sensor.SensorType)
+        # print(sensor.SensorType)
         print("{} - {}, {} Sensor {}: {} - {} {}".format(
             hardware_types[sensor.Hardware.HardwareType],
             sensor.Hardware.Name,
