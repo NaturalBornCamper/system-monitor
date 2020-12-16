@@ -1,0 +1,42 @@
+# case
+# SensorType.Voltage: Format = "{0:F3} V";
+# break;
+# case
+# SensorType.Clock: Format = "{0:F1} MHz";
+# break;
+# case
+# SensorType.Load: Format = "{0:F1} %";
+# break;
+# case
+# SensorType.Temperature: Format = "{0:F1} °C";
+# break;
+# case
+# SensorType.Fan: Format = "{0:F0} RPM";
+# break;
+# case
+# SensorType.Flow: Format = "{0:F1} L/h";
+# break;
+# case
+# SensorType.Control: Format = "{0:F1} %";
+# break;
+# case
+# SensorType.Level: Format = "{0:F1} %";
+# break;
+# case
+# SensorType.Power: Format = "{0:F1} W";
+# break;
+# case
+# SensorType.Data: Format = "{0:F1} GB";
+# break;
+# case
+# SensorType.SmallData: Format = "{0:F1} MB";
+# break;
+# case
+# SensorType.Factor: Format = "{0:F3}";
+# break;
+# case
+# SensorType.Frequency: Format = "{0:F1} Hz";
+# break;
+# case
+# SensorType.Throughput: Format = "{0:F1} B/s";
+# break;
