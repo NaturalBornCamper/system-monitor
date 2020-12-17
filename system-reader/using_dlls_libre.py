@@ -66,7 +66,8 @@ def initialize_librehardwaremonitor():
 
     handle = Hardware.Computer()
     # handle = Hardware.Computer(True) # Doesn't work
-    # handle = Hardware.Computer(IsCpuEnabled=True) # Doesn't work
+    # handle = Hardware.Computer(IsCpuEnabled=True)  # Doesn't work
+    # handle = Hardware.Computer({"IsCpuEnabled": True})  # Doesn't work
     handle.IsCpuEnabled = True
     handle.IsGpuEnabled = True
     handle.IsMemoryEnabled = True
