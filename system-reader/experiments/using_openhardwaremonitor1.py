@@ -24,7 +24,7 @@ OHM_sensortypes = [
 
 
 def init_OHM() :
- clr.AddReference( os.path.abspath( os.path.dirname( __file__ ) ) + R'\lib/OpenHardwareMonitorLib.dll' )
+ clr.AddReference( os.path.abspath( os.path.dirname( __file__ ) ) + R'\../lib/OpenHardwareMonitorLib.dll' )
  from OpenHardwareMonitor import Hardware
  hw = Hardware.Computer()
  hw.MainboardEnabled, hw.CPUEnabled, hw.RAMEnabled, hw.GPUEnabled, hw.HDDEnabled = True, True, True, True, True

@@ -1,255 +1,170 @@
-# -*- coding: utf-8 -*-
+"""
+This uses StackOverflow answer: https://stackoverflow.com/a/49909330/1046013
+Same as using_openhardwaremonitor1.py, however it also uses CPUThermometer, which is a sort of fork of OpenHardwareMonitor
+However, CPU Thermometer's dll seems to be 32bits (Even if website says both are included), so it won't load on
+Python 64 bits. It's not needed anyways as it doesn't give any additional info after OpenHardwareMonitor
+"""
+import json
+from pprint import pprint
 
-import psutil
-import platform
-from datetime import datetime
+from pyrotools.console import cprint, COLORS
+
+from constants import SERIAL_PORT, ERROR_SERIAL, HARDWARE_TYPES, SENSORS, SERIAL_BAUD_RATE, SERIAL_RTSCTS
+
+# noinspection PyPackageRequirements
+import clr  # From package "pythonnet", not package "clr"
+# from pythonnet import clr  # Not working, got to use line above
+import os
+import sys
+import glob
+import serial
 
 
-def get_size(bytes, suffix="B"):
+def get_serial_ports():
+    """ Lists serial serial_port names
+
+        :raises EnvironmentError:
+            On unsupported or unknown platforms
+        :returns:
+            A list of the serial ports available on the system
     """
-    Scale bytes to its proper format
-    e.g:
-        1253656 => '1.20MB'
-        1253656678 => '1.17GB'
-    """
-    factor = 1024
-    for unit in ["", "K", "M", "G", "T", "P"]:
-        if bytes < factor:
-            return f"{bytes:.2f}{unit}{suffix}"
-        bytes /= factor
+    if sys.platform.startswith('win'):
+        ports = ['COM%s' % (i + 1) for i in range(256)]
+    elif sys.platform.startswith('linux') or sys.platform.startswith('cygwin'):
+        # this excludes your current terminal "/dev/tty"
+        ports = glob.glob('/dev/tty[A-Za-z]*')
+    elif sys.platform.startswith('darwin'):
+        ports = glob.glob('/dev/tty.*')
+    else:
+        raise EnvironmentError('Unsupported platform')
 
-print("="*40, "System Information", "="*40)
-uname = platform.uname()
-print(f"System: {uname.system}")
-print(f"Node Name: {uname.node}")
-print(f"Release: {uname.release}")
-print(f"Version: {uname.version}")
-print(f"Machine: {uname.machine}")
-print(f"Processor: {uname.processor}")
-
-print("="*40, "Last reboot Time", "="*40)
-boot_time_timestamp = psutil.boot_time()
-bt = datetime.fromtimestamp(boot_time_timestamp)
-print(f"Boot Time: {bt.year}/{bt.month}/{bt.day} {bt.hour}:{bt.minute}:{bt.second}")
+    result = []
+    for port in ports:
+        try:
+            s = serial.Serial(port)
+            s.close()
+            result.append(port)
+        except (OSError, serial.SerialException):
+            pass
+    return result
 
 
-# let's print CPU information
-print("="*40, "CPU Info", "="*40)
-# number of cores
-print("Physical cores:", psutil.cpu_count(logical=False))
-print("Total cores:", psutil.cpu_count(logical=True))
-# CPU frequencies
-cpufreq = psutil.cpu_freq()
-print(f"Max Frequency: {cpufreq.max:.2f}Mhz")
-print(f"Min Frequency: {cpufreq.min:.2f}Mhz")
-print(f"Current Frequency: {cpufreq.current:.2f}Mhz")
-# CPU usage
-print("CPU Usage Per Core:")
-for i, percentage in enumerate(psutil.cpu_percent(percpu=True, interval=1)):
-    print(f"Core {i}: {percentage}%")
-print(f"Total CPU Usage: {psutil.cpu_percent()}%")
+def initialize_librehardwaremonitor():
+    file = 'lib/LibreHardwareMonitorLib.dll'
+    # clr.AddReference(file)
+    clr.AddReference(os.path.abspath(os.path.dirname(__file__)) + R'\lib/LibreHardwareMonitorLib.dll')
+    # clr.AddReference(os.path.abspath(os.path.dirname(__file__)) + R'\lib/HidSharp.dll')
+
+    # noinspection PyUnresolvedReferences
+    from LibreHardwareMonitor import Hardware
+
+    handle = Hardware.Computer()
+    # handle = Hardware.Computer(True) # Doesn't work
+    # handle = Hardware.Computer(IsCpuEnabled=True)  # Doesn't work
+    # handle = Hardware.Computer({"IsCpuEnabled": True})  # Doesn't work
+    handle.IsCpuEnabled = True
+    handle.IsGpuEnabled = True
+    handle.IsMemoryEnabled = True
+    handle.IsMotherboardEnabled = True
+    handle.IsControllerEnabled = True
+    handle.IsNetworkEnabled = True
+    handle.IsStorageEnabled = True
+    # print(handle.IsCpuEnabled)
+    # print(handle.IsGpuEnabled)
+    # print(handle.IsMemoryEnabled)
+    # print(handle.IsMotherboardEnabled)
+    # print(handle.IsControllerEnabled)
+    # print(handle.IsNetworkEnabled)
+    # print(handle.IsStorageEnabled)
+
+    # from pprint import pprint
+    # pprint([i for i in Hardware.Computer.__dict__.keys() if i[:1] != '_'])
+
+    # for att in dir(handle):
+    #     print(att, getattr(handle, att))
+
+    handle.Open()
+    return handle
 
 
-# Memory Information
-print("="*40, "Memory Information", "="*40)
-# get the memory details
-svmem = psutil.virtual_memory()
-print(f"Total: {get_size(svmem.total)}")
-print(f"Available: {get_size(svmem.available)}")
-print(f"Used: {get_size(svmem.used)}")
-print(f"Percentage: {svmem.percent}%")
-print("="*20, "SWAP", "="*20)
-# get the swap memory details (if exists)
-swap = psutil.swap_memory()
-print(f"Total: {get_size(swap.total)}")
-print(f"Free: {get_size(swap.free)}")
-print(f"Used: {get_size(swap.used)}")
-print(f"Percentage: {swap.percent}%")
+def fetch_stats(handle):
+    # from pprint import pprint
+    # pprint(handle.Hardware)
+    for i in handle.Hardware:
+        i.Update()
+        print(i.Name)
+        for sensor in i.Sensors:
+            # for att in dir(sensor):
+            #     print(att, getattr(sensor, att))
+            parse_sensor(sensor)
+        for j in i.SubHardware:
+            j.Update()
+            for subsensor in j.Sensors:
+                parse_sensor(subsensor)
 
 
-# Disk Information
-print("="*40, "Disk Information", "="*40)
-print("Partitions and Usage:")
-# get all disk partitions
-partitions = psutil.disk_partitions()
-for partition in partitions:
-    print(f"=== Device: {partition.device} ===")
-    print(f"  Mountpoint: {partition.mountpoint}")
-    print(f"  File system type: {partition.fstype}")
-    try:
-        partition_usage = psutil.disk_usage(partition.mountpoint)
-    except PermissionError:
-        # this can be catched due to the disk that
-        # isn't ready
-        continue
-    print(f"  Total Size: {get_size(partition_usage.total)}")
-    print(f"  Used: {get_size(partition_usage.used)}")
-    print(f"  Free: {get_size(partition_usage.free)}")
-    print(f"  Percentage: {partition_usage.percent}%")
-# get IO statistics since boot
-disk_io = psutil.disk_io_counters()
-print(f"Total read: {get_size(disk_io.read_bytes)}")
-print(f"Total write: {get_size(disk_io.write_bytes)}")
+def parse_sensor(sensor):
+    # print(sensor.Value)
+    if sensor.Value is not None:
+        # print(sensor.SensorType)
+        print("{} - {}, {} Sensor {}: {} - {} {}".format(
+            HARDWARE_TYPES[sensor.Hardware.HardwareType],
+            sensor.Hardware.Name,
+            SENSORS[sensor.SensorType].name,
+            sensor.Index,
+            sensor.Name,
+            sensor.Value,
+            SENSORS[sensor.SensorType].unit,
+        ))
 
 
-# Network information
-print("="*40, "Network Information", "="*40)
-# get all network interfaces (virtual and physical)
-if_addrs = psutil.net_if_addrs()
-for interface_name, interface_addresses in if_addrs.items():
-    for address in interface_addresses:
-        print(f"=== Interface: {interface_name} ===")
-        if str(address.family) == 'AddressFamily.AF_INET':
-            print(f"  IP Address: {address.address}")
-            print(f"  Netmask: {address.netmask}")
-            print(f"  Broadcast IP: {address.broadcast}")
-        elif str(address.family) == 'AddressFamily.AF_PACKET':
-            print(f"  MAC Address: {address.address}")
-            print(f"  Netmask: {address.netmask}")
-            print(f"  Broadcast MAC: {address.broadcast}")
-# get IO statistics since boot
-net_io = psutil.net_io_counters()
-print(f"Total Bytes Sent: {get_size(net_io.bytes_sent)}")
-print(f"Total Bytes Received: {get_size(net_io.bytes_recv)}")
+if __name__ == "__main__":
+    available_serial_ports = get_serial_ports()
+    pprint(available_serial_ports)
+    if SERIAL_PORT in available_serial_ports:
+        serial_port = SERIAL_PORT
+        cprint(COLORS.GREEN, "Opened serial serial_port {}".format(serial_port))
+    elif available_serial_ports:
+        serial_port = available_serial_ports[0]
+        cprint(COLORS.YELLOW, "Port {} is unavailable, connecting to available serial_port {} instead".format(
+            SERIAL_PORT,
+            serial_port
+        ))
+    else:
+        cprint(COLORS.RED, "No serial serial_port available, including requested serial_port {}".format(SERIAL_PORT))
+        sys.exit(ERROR_SERIAL)
 
+    ser = serial.Serial(
+        port=serial_port,
+        baudrate=SERIAL_BAUD_RATE,
+        parity=serial.PARITY_EVEN,
+        rtscts=SERIAL_RTSCTS
+    )
 
-# Battery
-print("="*40, "Battery Information", "="*40)
-battery = psutil.sensors_battery()
-if battery:
-    print(f"percent: {battery.percent}")
-    print(f"power_plugged: {battery.power_plugged}")
-    print(f"secsleft: {battery.secsleft}")
+    # LibreHardwareHandle = initialize_librehardwaremonitor()
+    # fetch_stats(LibreHardwareHandle)
 
-# GPU information
-import GPUtil
-from tabulate import tabulate
-print("="*40, "GPU Details", "="*40)
-gpus = GPUtil.getGPUs()
-list_gpus = []
-for gpu in gpus:
-    # get the GPU id
-    gpu_id = gpu.id
-    # name of GPU
-    gpu_name = gpu.name
-    # get % percentage of GPU usage of that GPU
-    gpu_load = f"{gpu.load*100}%"
-    # get free memory in MB format
-    gpu_free_memory = f"{gpu.memoryFree}MB"
-    # get used memory
-    gpu_used_memory = f"{gpu.memoryUsed}MB"
-    # get total memory
-    gpu_total_memory = f"{gpu.memoryTotal}MB"
-    # get GPU temperature in Celsius
-    gpu_temperature = f"{gpu.temperature} C"
-    gpu_uuid = gpu.uuid
-    list_gpus.append((
-        gpu_id, gpu_name, gpu_load, gpu_free_memory, gpu_used_memory,
-        gpu_total_memory, gpu_temperature, gpu_uuid
-    ))
+    # Don't know which to use
+    data = {
+        "cpu": {
+            "temperature": 40,
+            "usage": "50%"
+        },
+        "memory": {
+            "temperature": 50,
+            "usage": "20%"
+        },
+    }
+    serialized_data = json.dumps(data)
+    cprint(COLORS.CYAN, serialized_data)
+    serialized_encoded_data = serialized_data.encode(encoding='utf-8')
+    cprint(COLORS.CYAN, serialized_encoded_data)
+    res_dict = json.loads(serialized_encoded_data.decode(encoding='utf-8'))
+    ser.write(serialized_encoded_data)
+    # ser.write(serialized_encoded_data + b'\n')  # Better for use with readline()?
+    # ser.writelines(serialized_encoded_data + b'\n')  # Better for use with readLine()?
+    # ser.write(b"Hello")
+    # ser.write("Hello".encode())
+    # ser.write("Hello".encode(encoding="ascii")) # Can't encode special characters however
 
-print(tabulate(list_gpus, headers=("id", "name", "load", "free memory", "used memory", "total memory",
-                                   "temperature", "uuid")))
-
-# Fan speeds
-# print("="*40, "Fan speeds", "="*40)
-# for fan_speed in psutil.sensors_fans():
-#     print(fan_speed)
-
-# Temperatures
-# print("="*40, "Temperatures", "="*40)
-# for sensor in psutil.sensors_temperatures():
-#     print(sensor)
-
-# import wmi
-#
-# def avg(value_list):
-#     num = 0
-#     length = len(value_list)
-#     for val in value_list:
-#         num += val
-#     return num / length
-#
-# w = wmi.WMI(namespace="root\\OpenHardwareMonitor")
-# sensors = w.Sensor()
-# cpu_temps = []
-# gpu_temp = 0
-# for sensor in sensors:
-#     if sensor.SensorType == u'Temperature' and not 'GPU' in sensor.Name:
-#         cpu_temps += [float(sensor.Value)]
-#     elif sensor.SensorType == u'Temperature' and 'GPU' in sensor.Name:
-#         gpu_temp = sensor.Value
-# print("Avg CPU: {}".format(avg(cpu_temps)))
-# print("GPU: {}".format(gpu_temp))
-
-
-# import wmi
-# c = wmi.WMI()
-# for s in c.Win32_Service(StartMode="Auto", State="Stopped"):
-#     if raw_input("Restart %s? " % s.Caption).upper() == "Y":
-#         s.StartService()
-
-import wmi
-c = wmi.WMI()
-
-# for s in c.MSAcpi_ThermalZoneTemperature.methods.keys():
-#     print(s)
-
-print("="*40, "WMI Win32_TemperatureProbe", "="*40)
-for s in c.Win32_TemperatureProbe():
-    print(f"Name: {s.Name}")
-    print(f"Caption: {s.Caption}")
-    print(f"Description: {s.Description}")
-
-print("="*40, "WMI CIM_TemperatureSensor", "="*40)
-for s in c.CIM_TemperatureSensor():
-    print(f"Name: {s.Name}")
-    print(f"Caption: {s.Caption}")
-    print(f"Description: {s.Description}")
-
-
-print("="*40, "WMI Win32_OperatingSystem", "="*40)
-for os in c.Win32_OperatingSystem():
-  print(os.Caption)
-
-
-# Needs administrator rights
-# One value on Gigabyte: TZ00_0 28 Celcius
-print("="*40, "WMI MSAcpi_ThermalZoneTemperature", "="*40)
-c = wmi.WMI(namespace="WMI")
-for s in c.MSAcpi_ThermalZoneTemperature():
-    # print(s)
-    print("{}: {}°C".format(s.InstanceName, s.CurrentTemperature/10 - 273))
-
-# Supposed to have "CurrentReading" in Stackoverflow but don't have it on laptop OR gigabyte
-print("="*40, "WMI Win32_TemperatureProbe", "="*40)
-c = wmi.WMI()
-for s in c.Win32_TemperatureProbe():
-    print(s)
-    print("{} MinReadable: {}°C, MaxReadable: {}°C".format(s.DeviceID, s.MinReadable/10 - 273, s.MaxReadable/10 - 273))
-
-
-
-# wql = "SELECT * FROM MSAcpi_ThermalZoneTemperature"
-# for disk in c.query(wql):
-#     print(disk.CurrentTemperature)
-# strComputer = "."
-# Set objWMIService = GetObject("winmgmts:\\" & strComputer & "\root\WMI")
-# Set colItems = objWMIService.ExecQuery( _
-#     "SELECT * FROM MSAcpi_ThermalZoneTemperature",,48)
-# For Each objItem in colItems
-#     Wscript.Echo "-----------------------------------"
-#     Wscript.Echo "MSAcpi_ThermalZoneTemperature instance"
-#     Wscript.Echo "-----------------------------------"
-#     Wscript.Echo "CurrentTemperature: " & objItem.CurrentTemperature
-# Next
-
-# c = wmi.WMI(namespace="WMI")
-# for s in c.MSAcpi_ThermalZoneTemperature():
-#     pass
-    # print(s)
-    # print(f"Name: {s.Name}")
-    # print(f"Caption: {s.Caption}")
-    # print(f"Description: {s.Description}")
-    # print(f"CurrentTemperature: {s.CurrentTemperature}")
-
+    ser.close()

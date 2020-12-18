@@ -1,6 +1,6 @@
 """
 This uses StackOverflow answer: https://stackoverflow.com/a/49909330/1046013
-Same as pytherm.py, however it also uses CPUThermometer, which is a sort of fork of OpenHardwareMonitor
+Same as using_openhardwaremonitor1.py, however it also uses CPUThermometer, which is a sort of fork of OpenHardwareMonitor
 However, CPU Thermometer's dll seems to be 32bits (Even if website says both are included), so it won't load on
 Python 64 bits. It's not needed anyways as it doesn't give any additional info after OpenHardwareMonitor
 """
@@ -16,7 +16,7 @@ cputhermometer_sensortypes = ['Voltage','Clock','Temperature','Load','Fan','Flow
 
 
 def initialize_openhardwaremonitor():
-    file = 'lib/OpenHardwareMonitorLib.dll'
+    file = '../lib/OpenHardwareMonitorLib.dll'
     #clr.AddReference(file)
     clr.AddReference( os.path.abspath( os.path.dirname( __file__ ) ) + R'\lib/OpenHardwareMonitorLib.dll' )
 
@@ -32,7 +32,7 @@ def initialize_openhardwaremonitor():
     return handle
 
 def initialize_cputhermometer():
-    file = 'lib/CPUThermometerLib.dll'
+    file = '../lib/CPUThermometerLib.dll'
     #clr.AddReference(file)
     clr.AddReference( os.path.abspath( os.path.dirname( __file__ ) ) + R'\lib/CPUThermometerLib.dll' )
 

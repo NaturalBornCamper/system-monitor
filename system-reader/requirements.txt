@@ -1,5 +1,7 @@
 psutil~=5.7.3
-pythonnet
+pythonnet~=2.5.1
 gputil~=1.4.0
 tabulate~=0.8.7
 wmi~=1.5.1
+pyserial~=3.5
+pyrotools~=1.0.1
