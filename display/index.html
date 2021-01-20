@@ -1,0 +1,27 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Title</title>
+</head>
+<body>
+
+<script>
+    // Create WebSocket connection.
+    //const socket = new WebSocket('ws://127.0.0.1:2346');
+    //const socket = new WebSocket('ws://192.168.0.65:2346');
+    // const socket = new WebSocket('ws://192.168.0.65:2346');
+    const socket = new WebSocket('ws://localhost:2346');
+
+    // Connection opened
+    socket.addEventListener('open', function (event) {
+        socket.send('Hello Server!');
+    });
+
+    // Listen for messages
+    socket.addEventListener('message', function (event) {
+        console.log('Message from server ', event.data);
+    });
+</script>
+</body>
+</html>

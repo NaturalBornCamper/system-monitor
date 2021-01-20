@@ -1,5 +1,8 @@
 from collections import namedtuple
 
+SOCKET_PORT = 2346
+SOCKET_MAX_CONNECTION = 1
+
 SERIAL_PORT = 'COM4'
 SERIAL_BAUD_RATE = '115200'
 SERIAL_RTSCTS = False

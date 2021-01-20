@@ -17,11 +17,7 @@ import clr  # From package "pythonnet", not package "clr"
 import os
 import sys
 import glob
-
-import asyncio
-import datetime
-import random
-import websockets
+import serial
 
 
 def get_serial_ports():
@@ -123,37 +119,54 @@ def parse_sensor(sensor):
         ))
 
 
-# WS server that sends messages at random intervals
-
-
-async def time(websocket, path):
-    while True:
-        data = {
-            "cpu": {
-                "temperature": 40,
-                "usage": "50%"
-            },
-            "memory": {
-                "temperature": 50,
-                "usage": "20%"
-            },
-        }
-        serialized_data = json.dumps(data)
-        cprint(COLORS.CYAN, serialized_data)
-        try:
-            await websocket.send(serialized_data)
-        except websockets.exceptions.ConnectionClosed:
-            # websocket.close()
-            cprint(COLORS.YELLOW, "Client disconnected")
-            break
-        await asyncio.sleep(1)
-
 if __name__ == "__main__":
-    # LibreHardwareHandle = initialize_librehardwaremonitor()
-    # fetch_stats(LibreHardwareHandle)
+    available_serial_ports = get_serial_ports()
+    pprint(available_serial_ports)
+    if SERIAL_PORT in available_serial_ports:
+        serial_port = SERIAL_PORT
+        cprint(COLORS.GREEN, "Opened serial serial_port {}".format(serial_port))
+    elif available_serial_ports:
+        serial_port = available_serial_ports[0]
+        cprint(COLORS.YELLOW, "Port {} is unavailable, connecting to available serial_port {} instead".format(
+            SERIAL_PORT,
+            serial_port
+        ))
+    else:
+        cprint(COLORS.RED, "No serial serial_port available, including requested serial_port {}".format(SERIAL_PORT))
+        sys.exit(ERROR_SERIAL)
 
-    start_server = websockets.serve(time, "127.0.0.1", 2346)
-    cprint(COLORS.CYAN, "Listening on port 2346")
+    ser = serial.Serial(
+        port=serial_port,
+        baudrate=SERIAL_BAUD_RATE,
+        parity=serial.PARITY_EVEN,
+        rtscts=SERIAL_RTSCTS
+    )
 
-    asyncio.get_event_loop().run_until_complete(start_server)
-    asyncio.get_event_loop().run_forever()
+    LibreHardwareHandle = initialize_librehardwaremonitor()
+    fetch_stats(LibreHardwareHandle)
+    fetch_stats(LibreHardwareHandle)
+
+    # Don't know which to use
+    data = {
+        "cpu": {
+            "temperature": 40,
+            "usage": "50%"
+        },
+        "memory": {
+            "temperature": 50,
+            "usage": "20%"
+        },
+    }
+    serialized_data = json.dumps(data)
+    cprint(COLORS.CYAN, serialized_data)
+    serialized_encoded_data = serialized_data.encode(encoding='utf-8')
+    cprint(COLORS.CYAN, serialized_encoded_data)
+    res_dict = json.loads(serialized_encoded_data.decode(encoding='utf-8'))
+    ser.write(serialized_encoded_data)
+    # ser.write(serialized_encoded_data + b'\n')  # Better for use with readline()?
+    # ser.writelines(serialized_encoded_data + b'\n')  # Better for use with readLine()?
+    # ser.write(b"Hello")
+    # ser.write("Hello".encode())
+    # ser.write("Hello".encode(encoding="ascii")) # Can't encode special characters however
+
+    ser.close()
