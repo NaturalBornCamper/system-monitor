@@ -1,1 +1,7 @@
 put license for dll files in git
+
+
+Concurrency:
+one task could update hardware 1, then before got answer, another task could ask to update hardware 1 too.
+ Have it blocking?
+ Add status "updating" and send back when status changed?

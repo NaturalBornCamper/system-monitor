@@ -39,3 +39,12 @@ SENSORS = [
     Sensor(name="SmallData", unit="MB = 2^20 Bytes"),
     Sensor(name="Throughput", unit="B/s"),
 ]
+
+INDEX_HARDWARE = 0
+INDEX_SUB_HARDWARE = 1
+INDEX_SENSOR = 2
+INDEX_DELAY = 3
+INDEX_VALUE = 4
+INDEX_UNIT = 5
+
+UPDATE_THRESHOLD = 0.1
