@@ -5,3 +5,8 @@ Concurrency:
 one task could update hardware 1, then before got answer, another task could ask to update hardware 1 too.
  Have it blocking?
  Add status "updating" and send back when status changed?
+
+check if possible that calls to update() are sent faster than receiving and it fills the queue. Make sure only one at a time in task (I think already the case because of "await"
+
+
+self.datas should be an array per client, right now it's sending to anyone connected, needs to be "per client"

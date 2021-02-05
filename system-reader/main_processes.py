@@ -305,7 +305,7 @@ if __name__ == "__main__":
 
     # if not is_admin():
     if not ctypes.windll.shell32.IsUserAnAdmin():
-        cprint(COLORS.RED, "You need administrator rights to run the monitor")
+        cprint(COLORS.RED, "You need administrator rights to run the hardware_monitor")
         sys.exit(ERROR_ADMIN)
 
     # BaseManager.register('SimpleClass', SimpleClass)
