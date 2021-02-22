@@ -1,5 +1,7 @@
 # -*- coding: utf-8 -*-
 
+# https://www.thepythoncode.com/article/get-hardware-system-information-python
+
 import psutil
 import platform
 from datetime import datetime

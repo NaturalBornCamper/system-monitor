@@ -2,7 +2,7 @@
 from concurrent.futures._base import Future
 import concurrent.futures
 from concurrent.futures.thread import ThreadPoolExecutor
-from typing import Dict, Set, Tuple, List
+from typing import Dict, Set, Tuple, List, TYPE_CHECKING, Union
 
 import clr  # From package "pythonnet", not package "clr"
 # from pythonnet import clr  # Not working, got to use line above
@@ -14,20 +14,21 @@ import time
 from pyrotools.console import cprint, COLORS
 from collections import defaultdict
 
-from typing import TYPE_CHECKING
+from websockets import WebSocketClientProtocol
 
 if TYPE_CHECKING:
     from communication import Server
 from constants import HARDWARE_TYPES, SENSORS, INDEX_HARDWARE, INDEX_SENSOR, INDEX_SUB_HARDWARE, INDEX_VALUE, \
     INDEX_UNIT, INDEX_DELAY, UPDATE_THRESHOLD
 
+from collections.abc import Mapping
+
 
 class HardwareMonitor:
     handle = None
-    updates = {}
-    currently_updating: Set[Tuple] = set()
+    update_times = {}
     executor: ThreadPoolExecutor = ThreadPoolExecutor(max_workers=3)
-    futures: Dict[Tuple, Future] = {}
+    futures: Dict[Tuple[int, int], Future] = {}
 
     def __init__(self):
         file = 'lib/LibreHardwareMonitorLib.dll'
@@ -53,7 +54,7 @@ class HardwareMonitor:
     def __del__(self):
         self.executor.shutdown(cancel_futures=True)
 
-    def task(self, sensor: List = None):
+    def update_thread(self, websocket, sensor: List[Union[int, str]] = None):
         # print("Executing our Task on Process {}".format(os.getpid()))
         begin = time.time()
         h_id = sensor[INDEX_HARDWARE]
@@ -64,48 +65,51 @@ class HardwareMonitor:
         else:
             cprint(COLORS.CYAN, "upd:", h_id)
             self.handle.Hardware[h_id].Update()
-        self.updates[(h_id, None)] = time.time()
+        self.update_times[(h_id, None)] = time.time()
         cprint(COLORS.YELLOW, "updated:", h_id, "took {} seconds".format(time.time() - begin))
-        return sensor
+        return {
+            "websocket": websocket,
+            "sensor": sensor,
+        }
 
-    async def upd(self, sensor: List, server: 'Server'):
+    async def update_if_needed(self, server: 'Server', websocket: WebSocketClientProtocol, sensor: List[Union[int, str]]):
         h_id = sensor[INDEX_HARDWARE]
         delay = sensor[INDEX_DELAY]
         cprint(COLORS.RED, "Checking if hardware {} needs update".format(h_id))
-        try:
-            cprint(COLORS.GREEN, "Time since last update:", time.time() - self.updates[(h_id, None)])
+        if (h_id, None) in self.update_times:
+            cprint(COLORS.GREEN, "Time since last update:", time.time() - self.update_times[(h_id, None)])
             cprint(COLORS.GREEN, "Time since last update (with threshold):",
-                   time.time() - self.updates[(h_id, None)] + UPDATE_THRESHOLD)
+                   time.time() - self.update_times[(h_id, None)] + UPDATE_THRESHOLD)
             cprint(COLORS.BRIGHT_GREEN, "Delay accepted:", delay)
-            if time.time() - self.updates[(h_id, None)] + UPDATE_THRESHOLD >= delay:
+            if time.time() - self.update_times[(h_id, None)] + UPDATE_THRESHOLD >= delay:
                 cprint(COLORS.RED, "HARDWARE {} NEEDS UPDATE".format(h_id))
-                await self.real_update(sensor, server)
+                await self.create_update_callback(server, websocket, sensor)
             else:
                 cprint(COLORS.RED, "SKIPPING UPDATE FOR {}".format(h_id))
-        except KeyError:
+                server.callback(websocket=websocket, sensor=sensor)
+        else:
             cprint(COLORS.RED, "HARDWARE {} FIRST UPDATE".format(h_id))
-            await self.real_update(sensor, server)
+            await self.create_update_callback(server, websocket, sensor)
 
-    async def real_update(self, sensor: List, server: 'Server'):
+    async def create_update_callback(self, server: 'Server', websocket: WebSocketClientProtocol, sensor: List[Union[int, str]]):
         h_id = sensor[INDEX_HARDWARE]
-        print("upd:", h_id, time.time())
+        print("create_update_task:", h_id, time.time())
         tuple = (h_id, None)
         if tuple in self.futures and self.futures[tuple].running():
-            print("waiting for other request:", h_id)
+            print("Future ({}, {}) EXISTS!! Waiting for result from other request:".format(tuple[0], tuple[1]), h_id)
             while self.futures[tuple].running():
                 await asyncio.sleep(0.1)
-                server.callback(sensor=sensor)
+                server.callback(websocket=websocket, sensor=sensor)
             print("other request finished:", h_id)
         else:
-            cprint(COLORS.MAGENTA, "submit")
-            self.futures[tuple] = self.executor.submit(self.task, sensor=sensor)
+            cprint(COLORS.MAGENTA, "Future ({}, {}) doesn't exist".format(tuple[0], tuple[1]))
+            self.futures[tuple] = self.executor.submit(self.update_thread, websocket=websocket, sensor=sensor)
             self.futures[tuple].add_done_callback(server.callback)
+            cprint(COLORS.MAGENTA, "submit and created future ({}, {})".format(tuple[0], tuple[1]))
 
-            begin = time.time()
-            # time.sleep(4)
-            cprint(COLORS.YELLOW, "updated:", h_id, "took {} seconds".format(time.time() - begin))
+            cprint(COLORS.YELLOW, "got update from other future:", h_id)
 
-    def get_sensor_value(self, sensor_data: List):
+    def get_sensor_value(self, sensor_data: List[Union[int, str]]):
         if sensor_data[INDEX_SUB_HARDWARE]:
             sensor = self.handle.Hardware[sensor_data[INDEX_HARDWARE]].SubHardware[INDEX_SUB_HARDWARE].Sensors[
                 sensor_data[INDEX_SENSOR]]
