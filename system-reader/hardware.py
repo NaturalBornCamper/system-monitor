@@ -54,24 +54,6 @@ class HardwareMonitor:
     def __del__(self):
         self.executor.shutdown(cancel_futures=True)
 
-    def update_thread(self, websocket, sensor: List[Union[int, str]] = None):
-        # print("Executing our Task on Process {}".format(os.getpid()))
-        begin = time.time()
-        h_id = sensor[INDEX_HARDWARE]
-        if (h_id == 99):
-            cprint(COLORS.BLUE, "h_id 99 stalling")
-            time.sleep(5)
-            cprint(COLORS.BLUE, "h_id 99 finished stalling")
-        else:
-            cprint(COLORS.CYAN, "upd:", h_id)
-            self.handle.Hardware[h_id].Update()
-        self.update_times[(h_id, None)] = time.time()
-        cprint(COLORS.YELLOW, "updated:", h_id, "took {} seconds".format(time.time() - begin))
-        return {
-            "websocket": websocket,
-            "sensor": sensor,
-        }
-
     async def update_if_needed(self, server: 'Server', websocket: WebSocketClientProtocol, sensor: List[Union[int, str]]):
         h_id = sensor[INDEX_HARDWARE]
         delay = sensor[INDEX_DELAY]
@@ -103,11 +85,29 @@ class HardwareMonitor:
             print("other request finished:", h_id)
         else:
             cprint(COLORS.MAGENTA, "Future ({}, {}) doesn't exist".format(tuple[0], tuple[1]))
-            self.futures[tuple] = self.executor.submit(self.update_thread, websocket=websocket, sensor=sensor)
+            self.futures[tuple] = self.executor.submit(self.updater_thread, websocket=websocket, sensor=sensor)
             self.futures[tuple].add_done_callback(server.callback)
             cprint(COLORS.MAGENTA, "submit and created future ({}, {})".format(tuple[0], tuple[1]))
 
             cprint(COLORS.YELLOW, "got update from other future:", h_id)
+
+    def updater_thread(self, websocket: WebSocketClientProtocol, sensor: List[Union[int, str]] = None):
+        # print("Executing our Task on Process {}".format(os.getpid()))
+        begin = time.time()
+        h_id = sensor[INDEX_HARDWARE]
+        if h_id == 99:
+            cprint(COLORS.BLUE, "h_id 99 stalling")
+            time.sleep(5)
+            cprint(COLORS.BLUE, "h_id 99 finished stalling")
+        else:
+            cprint(COLORS.CYAN, "update_thread:", h_id)
+            self.handle.Hardware[h_id].Update()
+        self.update_times[(h_id, None)] = time.time()
+        cprint(COLORS.YELLOW, "updated:", h_id, "took {} seconds".format(time.time() - begin))
+        return {
+            "websocket": websocket,
+            "sensor": sensor,
+        }
 
     def get_sensor_value(self, sensor_data: List[Union[int, str]]):
         if sensor_data[INDEX_SUB_HARDWARE]:

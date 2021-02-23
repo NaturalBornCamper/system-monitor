@@ -1,9 +1,12 @@
 import asyncio
 import json
+from pprint import pprint
 from typing import List, Set, Dict, Union
 
 import websockets
 from pyrotools.console import cprint, COLORS
+from websockets.protocol import State
+
 from constants import ERROR_ADMIN, INDEX_SUB_HARDWARE, INDEX_HARDWARE, INDEX_DELAY, INDEX_SENSOR
 from concurrent.futures._base import Future
 import concurrent.futures
@@ -18,13 +21,21 @@ from asyncio.tasks import Task
 from websockets import WebSocketClientProtocol
 
 
+class Client:
+    hardware_tasks: List[Task] = []
+    sensor_data: List[str] = []
+    broadcast_task: Task = None
+
+    def cancel_all_hardware_tasks(self):
+        for task in self.hardware_tasks:
+            task.cancel()
+        self.hardware_tasks.clear()
+
+
 class Server:
-    # monitor = None
     monitor: HardwareMonitor = None
-    tasks: Dict[str, List[Task]] = {}
-    bob: Task = None
-    datas: Dict[str, List[str]] = {}
-    # datas: Set[WebSocketClientProtocol, List] = []
+    clients: Dict[WebSocketClientProtocol, Client] = {}
+
     requested_sensors: List[Union[int, str]] = [
         [1, None, 4, 1],  # CPU Load
         [1, None, 9, 3],  # CPU Temp
@@ -53,49 +64,67 @@ class Server:
         asyncio.get_event_loop().run_until_complete(start_server)
         asyncio.get_event_loop().run_forever()
 
+    async def broadcast(self, websocket: WebSocketClientProtocol):
+        while True:
+            if websocket.state == State.CLOSED:
+                cprint(COLORS.YELLOW, "Client disconnected (found out during broadcast iteration)")
+                return await self.disconnect_client(websocket)
+            if self.clients[websocket].sensor_data:
+                serialized_data = json.dumps(self.clients[websocket].sensor_data)
+                self.clients[websocket].sensor_data.clear()
+
+                print('---------------------SEND--------------------')
+                cprint(COLORS.CYAN, serialized_data)
+                try:
+                    await websocket.send(serialized_data)
+                except websockets.exceptions.ConnectionClosed:
+                    # except websockets.exceptions.ConnectionClosedError:
+                    cprint(COLORS.YELLOW, "Client disconnected (found out while sending data)")
+                    return await self.disconnect_client(websocket)
+            # await asyncio.sleep(2)
+            # await asyncio.sleep(1)
+            await asyncio.sleep(0.5)
+
+    async def disconnect_client(self, websocket: WebSocketClientProtocol):
+        if client := self.clients.pop(websocket, None):
+            # TODO Check if any threads were going to send back data to callback for websocket sending
+            client.cancel_all_hardware_tasks()
+            client.broadcast_task.cancel()
+        await websocket.close()
+        self.clients.pop(websocket, None)
+
     async def periodic(self, websocket: WebSocketClientProtocol, sensor: List[Union[int, str]] = None):
         while True:
             await self.monitor.update_if_needed(self, websocket, sensor=sensor)
             print('periodic sensor', sensor[INDEX_HARDWARE], sensor[INDEX_SUB_HARDWARE], sensor[INDEX_SENSOR])
-            from pprint import pprint
-            pprint(self.tasks)
+            pprint(self.clients[websocket].hardware_tasks)
             await asyncio.sleep(sensor[INDEX_DELAY])
 
-    def cancel_all_websocket_tasks(self, websocket: WebSocketClientProtocol):
-        if websocket.local_address[0] in self.tasks:
-            for task in self.tasks[websocket.local_address[0]]:
-                task.cancel()
+    def bobby(self):
+        print('connection lost ya')
 
     async def serve_new_client(self, websocket: WebSocketClientProtocol, path):
         print("New client connected")
-        if websocket.local_address[0] not in self.tasks.keys():
-            self.tasks[websocket.local_address[0]] = []
-        else:
-            self.cancel_all_websocket_tasks(websocket)
+        self.clients[websocket] = Client()
+        self.clients[websocket].broadcast_task = asyncio.create_task(self.broadcast(websocket))
 
-        for sensor in self.requested_sensors:
-            from pprint import pprint
-            pprint(sensor)
-            self.tasks[websocket.local_address[0]].append(asyncio.create_task(self.periodic(
-                websocket=websocket,
-                sensor=sensor
-            )))
-        print(self.tasks)
-        while True:
-            if data := self.datas.pop(websocket.local_address[0], None):
-                serialized_data = json.dumps(data)
-
-                cprint(COLORS.CYAN, serialized_data)
-                try:
-                    # await websocket.send("yo")
-                    await websocket.send(serialized_data)
-                except websockets.exceptions.ConnectionClosed:
-                    # websocket.close()
-                    self.cancel_all_websocket_tasks(websocket)
-                    cprint(COLORS.YELLOW, "Client disconnected")
-                    break
-            # await asyncio.sleep(1)
-            await asyncio.sleep(0.5)
+        try:
+            async for message in websocket:
+                print('-------------------------MESSAGE RECEIVED----------------------------')
+                data = json.loads(message)
+                pprint(data)
+                if 'action' in data and data['action'] == 'set_sensors':
+                    self.clients[websocket].cancel_all_hardware_tasks()
+                    for sensor in data['requested_sensors']:
+                        self.clients[websocket].hardware_tasks.append(asyncio.create_task(self.periodic(
+                            websocket=websocket,
+                            sensor=sensor
+                        )))
+                    print(self.clients[websocket].hardware_tasks)
+        # except websockets.exceptions.ConnectionClosed:
+        except websockets.exceptions.ConnectionClosedError:
+            cprint(COLORS.YELLOW, "Client disconnected (found out while checking messages)")
+            return await self.disconnect_client(websocket)
 
     def callback(self, fut: Future = None, websocket: WebSocketClientProtocol = None, sensor: List = None):
         if fut:
@@ -103,9 +132,8 @@ class Server:
             websocket = fut.result()["websocket"]
             sensor = fut.result()["sensor"]
 
-        if websocket.local_address[0] not in self.datas:
-            self.datas[websocket.local_address[0]] = []
-
-        self.datas[websocket.local_address[0]].append(self.monitor.get_sensor_value(sensor_data=sensor))
+        # Check to make sure websocket still exists in case it was disconnected before update thread ended
+        if websocket in self.clients:
+            self.clients[websocket].sensor_data.append(self.monitor.get_sensor_value(sensor_data=sensor))
 
         cprint(COLORS.RED, "thread finished")

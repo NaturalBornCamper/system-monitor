@@ -1,4 +1,5 @@
 from collections import namedtuple
+import enum
 
 SOCKET_PORT = 2346
 SOCKET_MAX_CONNECTION = 1
@@ -48,3 +49,8 @@ INDEX_VALUE = 4
 INDEX_UNIT = 5
 
 UPDATE_THRESHOLD = 0.1
+
+
+# Just class stolen from other file as example so make constants like this
+class State(enum.IntEnum):
+    CONNECTING, OPEN, CLOSING, CLOSED = range(4)
