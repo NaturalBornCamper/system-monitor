@@ -3,6 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <title>Title</title>
+    <script src="constants.js"></script>
 </head>
 <body>
 
@@ -74,13 +75,13 @@
 
     function sensors1(){
         socket.send(JSON.stringify({
-            'action': 0,
+            'action': Actions.SET_SENSORS,
             'requested_sensors': [[1, null, 4, 1]]
         }));
     }
     function sensors2(){
         socket.send(JSON.stringify({
-            'action': 0,
+            'action': Actions.SET_SENSORS,
             'requested_sensors': [[1, null, 9, 3]]
         }));
     }
