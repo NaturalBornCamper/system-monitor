@@ -138,6 +138,6 @@ class Server:
 
         # Check to make sure websocket still exists in case it was disconnected before update thread ended
         if websocket in self.clients:
-            self.clients[websocket].sensor_data.append(self.monitor.get_sensor_value(sensor_data=sensor))
+            self.clients[websocket].sensor_data.append(self.monitor.get_sensor_value(requested_sensor=sensor))
 
         cprint(COLORS.RED, "thread finished")

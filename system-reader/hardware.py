@@ -56,71 +56,77 @@ class HardwareMonitor:
 
     async def update_if_needed(self, server: 'Server', websocket: WebSocketClientProtocol, sensor: List[Union[int, str]]):
         h_id = sensor[INDEX_HARDWARE]
+        sh_id = sensor[INDEX_SUB_HARDWARE]
         delay = sensor[INDEX_DELAY]
-        cprint(COLORS.RED, "Checking if hardware {} needs update".format(h_id))
-        if (h_id, None) in self.update_times:
-            cprint(COLORS.GREEN, "Time since last update:", time.time() - self.update_times[(h_id, None)])
+        cprint(COLORS.RED, f"Checking if hardware ({h_id},{sh_id}) needs update")
+        if (h_id, sh_id) in self.update_times:
+            cprint(COLORS.GREEN, "Time since last update:", time.time() - self.update_times[(h_id, sh_id)])
             cprint(COLORS.GREEN, "Time since last update (with threshold):",
-                   time.time() - self.update_times[(h_id, None)] + UPDATE_THRESHOLD)
+                   time.time() - self.update_times[(h_id, sh_id)] + UPDATE_THRESHOLD)
             cprint(COLORS.BRIGHT_GREEN, "Delay accepted:", delay)
-            if time.time() - self.update_times[(h_id, None)] + UPDATE_THRESHOLD >= delay:
-                cprint(COLORS.RED, "HARDWARE {} NEEDS UPDATE".format(h_id))
+            if time.time() - self.update_times[(h_id, sh_id)] + UPDATE_THRESHOLD >= delay:
+                cprint(COLORS.RED, f"HARDWARE ({h_id},{sh_id}) NEEDS UPDATE")
                 await self.create_update_callback(server, websocket, sensor)
             else:
-                cprint(COLORS.RED, "SKIPPING UPDATE FOR {}".format(h_id))
+                cprint(COLORS.RED, f"SKIPPING UPDATE FOR ({h_id},{sh_id})")
                 server.callback(websocket=websocket, sensor=sensor)
         else:
-            cprint(COLORS.RED, "HARDWARE {} FIRST UPDATE".format(h_id))
+            cprint(COLORS.RED, f"HARDWARE ({h_id},{sh_id}) FIRST UPDATE")
             await self.create_update_callback(server, websocket, sensor)
 
     async def create_update_callback(self, server: 'Server', websocket: WebSocketClientProtocol, sensor: List[Union[int, str]]):
         h_id = sensor[INDEX_HARDWARE]
+        sh_id = sensor[INDEX_SUB_HARDWARE]
         print("create_update_task:", h_id, time.time())
-        tuple = (h_id, None)
+        tuple = (h_id, sh_id)
         if tuple in self.futures and self.futures[tuple].running():
-            print("Future ({}, {}) EXISTS!! Waiting for result from other request:".format(tuple[0], tuple[1]), h_id)
+            print(f"Future ({tuple[0]}, {tuple[1]}) EXISTS!! Waiting for result from other request: ", h_id)
             while self.futures[tuple].running():
                 await asyncio.sleep(0.1)
                 server.callback(websocket=websocket, sensor=sensor)
-            print("other request finished:", h_id)
+            print(f"other request finished: ({h_id},{sh_id})")
         else:
-            cprint(COLORS.MAGENTA, "Future ({}, {}) doesn't exist".format(tuple[0], tuple[1]))
+            cprint(COLORS.MAGENTA, f"Future ({tuple[0]}, {tuple[1]}) doesn't exist")
             self.futures[tuple] = self.executor.submit(self.updater_thread, websocket=websocket, sensor=sensor)
             self.futures[tuple].add_done_callback(server.callback)
-            cprint(COLORS.MAGENTA, "submit and created future ({}, {})".format(tuple[0], tuple[1]))
+            cprint(COLORS.MAGENTA, f"submit and created future ({tuple[0]}, {tuple[1]})")
 
-            cprint(COLORS.YELLOW, "got update from other future:", h_id)
+            cprint(COLORS.YELLOW, f"got update from other future: ({h_id},{sh_id})")
 
     def updater_thread(self, websocket: WebSocketClientProtocol, sensor: List[Union[int, str]] = None):
         # print("Executing our Task on Process {}".format(os.getpid()))
         begin = time.time()
         h_id = sensor[INDEX_HARDWARE]
+        sh_id = sensor[INDEX_SUB_HARDWARE]
         if h_id == 99:
             cprint(COLORS.BLUE, "h_id 99 stalling")
             time.sleep(5)
             cprint(COLORS.BLUE, "h_id 99 finished stalling")
         else:
-            cprint(COLORS.CYAN, "update_thread:", h_id)
-            self.handle.Hardware[h_id].Update()
-        self.update_times[(h_id, None)] = time.time()
-        cprint(COLORS.YELLOW, "updated:", h_id, "took {} seconds".format(time.time() - begin))
+            cprint(COLORS.CYAN, f"update_thread: ({h_id},{sh_id})")
+            if sh_id:
+                self.handle.Hardware[h_id].SubHardware[sh_id].Update()
+            else:
+                self.handle.Hardware[h_id].Update()
+        self.update_times[(h_id, sh_id)] = time.time()
+        cprint(COLORS.YELLOW, f"updated: ({h_id},{sh_id}), took {time.time() - begin} seconds")
         return {
             "websocket": websocket,
             "sensor": sensor,
         }
 
-    def get_sensor_value(self, sensor_data: List[Union[int, str]]):
-        if sensor_data[INDEX_SUB_HARDWARE]:
-            sensor = self.handle.Hardware[sensor_data[INDEX_HARDWARE]].SubHardware[INDEX_SUB_HARDWARE].Sensors[
-                sensor_data[INDEX_SENSOR]]
+    def get_sensor_value(self, requested_sensor: List[Union[int, str]]):
+        if requested_sensor[INDEX_SUB_HARDWARE]:
+            sensor = self.handle.Hardware[requested_sensor[INDEX_HARDWARE]].SubHardware[requested_sensor[INDEX_SUB_HARDWARE]].Sensors[
+                requested_sensor[INDEX_SENSOR]]
         else:
-            sensor = self.handle.Hardware[sensor_data[INDEX_HARDWARE]].Sensors[sensor_data[INDEX_SENSOR]]
+            sensor = self.handle.Hardware[requested_sensor[INDEX_HARDWARE]].Sensors[requested_sensor[INDEX_SENSOR]]
 
         return {
-            INDEX_HARDWARE: sensor_data[INDEX_HARDWARE],
-            INDEX_SUB_HARDWARE: sensor_data[INDEX_SUB_HARDWARE],
-            INDEX_SENSOR: sensor_data[INDEX_SENSOR],
-            INDEX_DELAY: sensor_data[INDEX_DELAY],
+            INDEX_HARDWARE: requested_sensor[INDEX_HARDWARE],
+            INDEX_SUB_HARDWARE: requested_sensor[INDEX_SUB_HARDWARE],
+            INDEX_SENSOR: requested_sensor[INDEX_SENSOR],
+            INDEX_DELAY: requested_sensor[INDEX_DELAY],
             INDEX_VALUE: sensor.Value,
             INDEX_UNIT: SENSORS[sensor.SensorType].unit,
         }
