@@ -13,9 +13,6 @@ self.datas should be an array per client, right now it's sending to anyone conne
 
 
 RENDU:
-# TODO Test 2 client tabs (BROKEN, SENDS TO WRONG WINDOW FOR SOME REASON)
-# TODO Add delay in broadcast() as a constant (Maybe sent from client?)
-# TODO Add "action" types as a constant ("action": "update_sensors")
 # TODO Add sub_hardware so I can work on main computer
 # TODO Client button (and "action": "stop_data") to stop sending hardware updates
 # TODO change requested_sensors from List to dictionary

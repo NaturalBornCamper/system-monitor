@@ -7,7 +7,8 @@ import websockets
 from pyrotools.console import cprint, COLORS
 from websockets.protocol import State
 
-from constants import ERROR_ADMIN, INDEX_SUB_HARDWARE, INDEX_HARDWARE, INDEX_DELAY, INDEX_SENSOR
+from constants import ERROR_ADMIN, INDEX_SUB_HARDWARE, INDEX_HARDWARE, INDEX_DELAY, INDEX_SENSOR, \
+    WEBSOCKET_BROADCAST_DELAY_SECONDS, Actions
 from concurrent.futures._base import Future
 import concurrent.futures
 
@@ -22,9 +23,14 @@ from websockets import WebSocketClientProtocol
 
 
 class Client:
-    hardware_tasks: List[Task] = []
-    sensor_data: List[str] = []
+    hardware_tasks: List[Task]
+    sensor_data: List[Dict[int, str]]
     broadcast_task: Task = None
+
+    # Note: Need to create new lists in constructor, or they will share reference to same list
+    def __init__(self):
+        self.hardware_tasks = []
+        self.sensor_data = []
 
     def cancel_all_hardware_tasks(self):
         for task in self.hardware_tasks:
@@ -81,9 +87,8 @@ class Server:
                     # except websockets.exceptions.ConnectionClosedError:
                     cprint(COLORS.YELLOW, "Client disconnected (found out while sending data)")
                     return await self.disconnect_client(websocket)
-            # await asyncio.sleep(2)
-            # await asyncio.sleep(1)
-            await asyncio.sleep(0.5)
+            # TODO Should specific broadcast delay be requested by client instead?
+            await asyncio.sleep(WEBSOCKET_BROADCAST_DELAY_SECONDS)
 
     async def disconnect_client(self, websocket: WebSocketClientProtocol):
         if client := self.clients.pop(websocket, None):
@@ -91,7 +96,6 @@ class Server:
             client.cancel_all_hardware_tasks()
             client.broadcast_task.cancel()
         await websocket.close()
-        self.clients.pop(websocket, None)
 
     async def periodic(self, websocket: WebSocketClientProtocol, sensor: List[Union[int, str]] = None):
         while True:
@@ -104,7 +108,7 @@ class Server:
         print('connection lost ya')
 
     async def serve_new_client(self, websocket: WebSocketClientProtocol, path):
-        print("New client connected")
+        print("New client connected: ", websocket)
         self.clients[websocket] = Client()
         self.clients[websocket].broadcast_task = asyncio.create_task(self.broadcast(websocket))
 
@@ -113,7 +117,7 @@ class Server:
                 print('-------------------------MESSAGE RECEIVED----------------------------')
                 data = json.loads(message)
                 pprint(data)
-                if 'action' in data and data['action'] == 'set_sensors':
+                if 'action' in data and data['action'] == Actions.SET_SENSORS:
                     self.clients[websocket].cancel_all_hardware_tasks()
                     for sensor in data['requested_sensors']:
                         self.clients[websocket].hardware_tasks.append(asyncio.create_task(self.periodic(

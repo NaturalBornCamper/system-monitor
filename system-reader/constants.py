@@ -1,6 +1,9 @@
 from collections import namedtuple
 import enum
 
+WEBSOCKET_BROADCAST_DELAY_SECONDS = 2
+# WEBSOCKET_BROADCAST_DELAY_SECONDS = 0.5
+
 SOCKET_PORT = 2346
 SOCKET_MAX_CONNECTION = 1
 
@@ -51,6 +54,5 @@ INDEX_UNIT = 5
 UPDATE_THRESHOLD = 0.1
 
 
-# Just class stolen from other file as example so make constants like this
-class State(enum.IntEnum):
-    CONNECTING, OPEN, CLOSING, CLOSED = range(4)
+class Actions(enum.IntEnum):
+    SET_SENSORS, STOP_BROADCAST, CHANGE_DELAY = range(3)

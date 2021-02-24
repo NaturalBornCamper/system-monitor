@@ -74,13 +74,13 @@
 
     function sensors1(){
         socket.send(JSON.stringify({
-            'action': 'set_sensors',
+            'action': 0,
             'requested_sensors': [[1, null, 4, 1]]
         }));
     }
     function sensors2(){
         socket.send(JSON.stringify({
-            'action': 'set_sensors',
+            'action': 0,
             'requested_sensors': [[1, null, 9, 3]]
         }));
     }
