@@ -7,8 +7,7 @@ import websockets
 from pyrotools.console import cprint, COLORS
 from websockets.protocol import State
 
-from constants import ERROR_ADMIN, INDEX_SUB_HARDWARE, INDEX_HARDWARE, INDEX_DELAY, INDEX_SENSOR, \
-    WEBSOCKET_BROADCAST_DELAY_SECONDS, Actions
+from constants import WEBSOCKET_BROADCAST_DELAY_SECONDS, Actions, Sensor
 from concurrent.futures._base import Future
 import concurrent.futures
 
@@ -100,9 +99,9 @@ class Server:
     async def periodic(self, websocket: WebSocketClientProtocol, sensor: List[Union[int, str]] = None):
         while True:
             await self.monitor.update_if_needed(self, websocket, sensor=sensor)
-            print('periodic sensor', sensor[INDEX_HARDWARE], sensor[INDEX_SUB_HARDWARE], sensor[INDEX_SENSOR])
+            print('periodic sensor', sensor[Sensor.HARDWARE], sensor[Sensor.SUB_HARDWARE], sensor[Sensor.SENSOR])
             pprint(self.clients[websocket].hardware_tasks)
-            await asyncio.sleep(sensor[INDEX_DELAY])
+            await asyncio.sleep(sensor[Sensor.DELAY])
 
     def bobby(self):
         print('connection lost ya')

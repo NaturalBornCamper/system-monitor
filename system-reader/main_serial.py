@@ -9,7 +9,7 @@ from pprint import pprint
 
 from pyrotools.console import cprint, COLORS
 
-from constants import SERIAL_PORT, ERROR_SERIAL, HARDWARE_TYPES, SENSORS, SERIAL_BAUD_RATE, SERIAL_RTSCTS
+from constants import SERIAL_PORT, ERROR_SERIAL, HARDWARE_TYPES, SENSOR_TYPES, SERIAL_BAUD_RATE, SERIAL_RTSCTS
 
 # noinspection PyPackageRequirements
 import clr  # From package "pythonnet", not package "clr"
@@ -111,11 +111,11 @@ def parse_sensor(sensor):
         print("{} - {}, {} Sensor {}: {} - {} {}".format(
             HARDWARE_TYPES[sensor.Hardware.HardwareType],
             sensor.Hardware.Name,
-            SENSORS[sensor.SensorType].name,
+            SENSOR_TYPES[sensor.SensorType].name,
             sensor.Index,
             sensor.Name,
             sensor.Value,
-            SENSORS[sensor.SensorType].unit,
+            SENSOR_TYPES[sensor.SensorType].unit,
         ))
 
 

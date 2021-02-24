@@ -51,38 +51,48 @@
         });
     }
 
-    const requested_sensors = [
-        [1, null, 4, 1], // CPU Load
-        [1, null, 9, 3],  // CPU Temp
-        // [2, null, 2, 3],  // Memory Load
-        // [3, null, 0, 3],  // GPU Temp
-        // [3, null, 4, 1],  // GPU Core Load
-        // [3, null, 6, 1],  // GPU Video Engine Load
-        // [3, null, 11, 1],  // GPU Memory Load
-        // [4, null, 3, 1],  // Seagate HDD Load
-        // [4, null, 0, 1],  // Seagate Temp
-        // [5, null, 2, 1],  // HGST Load
-        // [6, null, 0, 1],  // SSD Temp
-        // [6, null, 6, 1],  // SSD Temp 1
-        // [6, null, 7, 1],  // SSD Temp 2
-        // [6, null, 10, 1],  // SSD Load
-        // [13, null, 2, 1],  // Wi-Fi Upload
-        // [13, null, 3, 1],  // Wi-Fi Download
-        // [13, null, 4, 1],  // Wi-Fi Load
-    ]
+    // const requested_sensors = [
+    //     [1, null, 4, 1], // CPU Load
+    //     [1, null, 9, 3],  // CPU Temp
+    //     // [2, null, 2, 3],  // Memory Load
+    //     // [3, null, 0, 3],  // GPU Temp
+    //     // [3, null, 4, 1],  // GPU Core Load
+    //     // [3, null, 6, 1],  // GPU Video Engine Load
+    //     // [3, null, 11, 1],  // GPU Memory Load
+    //     // [4, null, 3, 1],  // Seagate HDD Load
+    //     // [4, null, 0, 1],  // Seagate Temp
+    //     // [5, null, 2, 1],  // HGST Load
+    //     // [6, null, 0, 1],  // SSD Temp
+    //     // [6, null, 6, 1],  // SSD Temp 1
+    //     // [6, null, 7, 1],  // SSD Temp 2
+    //     // [6, null, 10, 1],  // SSD Load
+    //     // [13, null, 2, 1],  // Wi-Fi Upload
+    //     // [13, null, 3, 1],  // Wi-Fi Download
+    //     // [13, null, 4, 1],  // Wi-Fi Load
+    // ]
 
     tryConnection();
 
     function sensors1(){
         socket.send(JSON.stringify({
             'action': Actions.SET_SENSORS,
-            'requested_sensors': [[1, null, 4, 1]]
+            'requested_sensors': [{
+                [Sensor.HARDWARE]: 1,
+                [Sensor.SUB_HARDWARE]: null,
+                [Sensor.SENSOR]: 4,
+                [Sensor.DELAY]: 1
+            }]
         }));
     }
     function sensors2(){
         socket.send(JSON.stringify({
             'action': Actions.SET_SENSORS,
-            'requested_sensors': [[1, null, 9, 3]]
+            'requested_sensors': [{
+                [Sensor.HARDWARE]: 1,
+                [Sensor.SUB_HARDWARE]: null,
+                [Sensor.SENSOR]: 9,
+                [Sensor.DELAY]: 3
+            }]
         }));
     }
 

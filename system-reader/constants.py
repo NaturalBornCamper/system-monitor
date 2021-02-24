@@ -27,7 +27,7 @@ HARDWARE_TYPES = [
 ]
 
 Sensor = namedtuple("Sensor", "name unit")
-SENSORS = [
+SENSOR_TYPES = [
     Sensor(name="Voltage", unit="V"),
     Sensor(name="Clock", unit="MHz"),
     Sensor(name="Temperature", unit="\u00B0C"),
@@ -44,14 +44,17 @@ SENSORS = [
     Sensor(name="Throughput", unit="B/s"),
 ]
 
-INDEX_HARDWARE = 0
-INDEX_SUB_HARDWARE = 1
-INDEX_SENSOR = 2
-INDEX_DELAY = 3
-INDEX_VALUE = 4
-INDEX_UNIT = 5
-
+# TODO Should it be per-case? 0.1s is nothing when max delay is 10s, but it's a lot if max delay is 0.4s. Maybe use percentage instead?
 UPDATE_THRESHOLD = 0.1
+
+
+class Sensor:
+    HARDWARE = 'hardware'
+    SUB_HARDWARE = 'sub_hardware'
+    SENSOR = 'sensor'
+    DELAY = 'delay'
+    VALUE = 'value'
+    UNIT = "unit"
 
 
 class Actions(enum.IntEnum):

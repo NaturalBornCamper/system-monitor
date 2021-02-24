@@ -18,8 +18,7 @@ from websockets import WebSocketClientProtocol
 
 if TYPE_CHECKING:
     from communication import Server
-from constants import HARDWARE_TYPES, SENSORS, INDEX_HARDWARE, INDEX_SENSOR, INDEX_SUB_HARDWARE, INDEX_VALUE, \
-    INDEX_UNIT, INDEX_DELAY, UPDATE_THRESHOLD
+from constants import HARDWARE_TYPES, SENSOR_TYPES, Sensor, UPDATE_THRESHOLD
 
 from collections.abc import Mapping
 
@@ -54,81 +53,86 @@ class HardwareMonitor:
     def __del__(self):
         self.executor.shutdown(cancel_futures=True)
 
-    async def update_if_needed(self, server: 'Server', websocket: WebSocketClientProtocol, sensor: List[Union[int, str]]):
-        h_id = sensor[INDEX_HARDWARE]
-        sh_id = sensor[INDEX_SUB_HARDWARE]
-        delay = sensor[INDEX_DELAY]
-        cprint(COLORS.RED, f"Checking if hardware ({h_id},{sh_id}) needs update")
-        if (h_id, sh_id) in self.update_times:
-            cprint(COLORS.GREEN, "Time since last update:", time.time() - self.update_times[(h_id, sh_id)])
+    async def update_if_needed(self, server: 'Server', websocket: WebSocketClientProtocol,
+                               sensor: List[Union[int, str]]):
+        hardware_id = sensor[Sensor.HARDWARE]
+        sub_hardware_id = sensor[Sensor.SUB_HARDWARE]
+        delay = sensor[Sensor.DELAY]
+        cprint(COLORS.RED, f"Checking if hardware ({hardware_id},{sub_hardware_id}) needs update")
+        if (hardware_id, sub_hardware_id) in self.update_times:
+            cprint(COLORS.GREEN, "Time since last update:",
+                   time.time() - self.update_times[(hardware_id, sub_hardware_id)])
             cprint(COLORS.GREEN, "Time since last update (with threshold):",
-                   time.time() - self.update_times[(h_id, sh_id)] + UPDATE_THRESHOLD)
+                   time.time() - self.update_times[(hardware_id, sub_hardware_id)] + UPDATE_THRESHOLD)
             cprint(COLORS.BRIGHT_GREEN, "Delay accepted:", delay)
-            if time.time() - self.update_times[(h_id, sh_id)] + UPDATE_THRESHOLD >= delay:
-                cprint(COLORS.RED, f"HARDWARE ({h_id},{sh_id}) NEEDS UPDATE")
+            if time.time() - self.update_times[(hardware_id, sub_hardware_id)] + UPDATE_THRESHOLD >= delay:
+                cprint(COLORS.RED, f"HARDWARE ({hardware_id},{sub_hardware_id}) NEEDS UPDATE")
                 await self.create_update_callback(server, websocket, sensor)
             else:
-                cprint(COLORS.RED, f"SKIPPING UPDATE FOR ({h_id},{sh_id})")
+                cprint(COLORS.RED, f"SKIPPING UPDATE FOR ({hardware_id},{sub_hardware_id})")
                 server.callback(websocket=websocket, sensor=sensor)
         else:
-            cprint(COLORS.RED, f"HARDWARE ({h_id},{sh_id}) FIRST UPDATE")
+            cprint(COLORS.RED, f"HARDWARE ({hardware_id},{sub_hardware_id}) FIRST UPDATE")
             await self.create_update_callback(server, websocket, sensor)
 
-    async def create_update_callback(self, server: 'Server', websocket: WebSocketClientProtocol, sensor: List[Union[int, str]]):
-        h_id = sensor[INDEX_HARDWARE]
-        sh_id = sensor[INDEX_SUB_HARDWARE]
-        print("create_update_task:", h_id, time.time())
-        tuple = (h_id, sh_id)
+    async def create_update_callback(self, server: 'Server', websocket: WebSocketClientProtocol,
+                                     sensor: List[Union[int, str]]):
+        hardware_id = sensor[Sensor.HARDWARE]
+        sub_hardware_id = sensor[Sensor.SUB_HARDWARE]
+        print("create_update_task:", hardware_id, time.time())
+        tuple = (hardware_id, sub_hardware_id)
         if tuple in self.futures and self.futures[tuple].running():
-            print(f"Future ({tuple[0]}, {tuple[1]}) EXISTS!! Waiting for result from other request: ", h_id)
+            print(f"Future ({tuple[0]}, {tuple[1]}) EXISTS!! Waiting for result from other request: ", hardware_id)
             while self.futures[tuple].running():
                 await asyncio.sleep(0.1)
                 server.callback(websocket=websocket, sensor=sensor)
-            print(f"other request finished: ({h_id},{sh_id})")
+            print(f"other request finished: ({hardware_id},{sub_hardware_id})")
         else:
             cprint(COLORS.MAGENTA, f"Future ({tuple[0]}, {tuple[1]}) doesn't exist")
             self.futures[tuple] = self.executor.submit(self.updater_thread, websocket=websocket, sensor=sensor)
             self.futures[tuple].add_done_callback(server.callback)
             cprint(COLORS.MAGENTA, f"submit and created future ({tuple[0]}, {tuple[1]})")
 
-            cprint(COLORS.YELLOW, f"got update from other future: ({h_id},{sh_id})")
+            cprint(COLORS.YELLOW, f"got update from other future: ({hardware_id},{sub_hardware_id})")
 
     def updater_thread(self, websocket: WebSocketClientProtocol, sensor: List[Union[int, str]] = None):
         # print("Executing our Task on Process {}".format(os.getpid()))
         begin = time.time()
-        h_id = sensor[INDEX_HARDWARE]
-        sh_id = sensor[INDEX_SUB_HARDWARE]
-        if h_id == 99:
-            cprint(COLORS.BLUE, "h_id 99 stalling")
+        hardware_id = sensor[Sensor.HARDWARE]
+        sub_hardware_id = sensor[Sensor.SUB_HARDWARE]
+        if hardware_id == 99:
+            cprint(COLORS.BLUE, "hardware_id 99 stalling")
             time.sleep(5)
-            cprint(COLORS.BLUE, "h_id 99 finished stalling")
+            cprint(COLORS.BLUE, "hardware_id 99 finished stalling")
         else:
-            cprint(COLORS.CYAN, f"update_thread: ({h_id},{sh_id})")
-            if sh_id:
-                self.handle.Hardware[h_id].SubHardware[sh_id].Update()
+            cprint(COLORS.CYAN, f"update_thread: ({hardware_id},{sub_hardware_id})")
+            if sub_hardware_id:
+                self.handle.Hardware[hardware_id].SubHardware[sub_hardware_id].Update()
             else:
-                self.handle.Hardware[h_id].Update()
-        self.update_times[(h_id, sh_id)] = time.time()
-        cprint(COLORS.YELLOW, f"updated: ({h_id},{sh_id}), took {time.time() - begin} seconds")
+                self.handle.Hardware[hardware_id].Update()
+        self.update_times[(hardware_id, sub_hardware_id)] = time.time()
+        cprint(COLORS.YELLOW, f"updated: ({hardware_id},{sub_hardware_id}), took {time.time() - begin} seconds")
         return {
             "websocket": websocket,
             "sensor": sensor,
         }
 
     def get_sensor_value(self, requested_sensor: List[Union[int, str]]):
-        if requested_sensor[INDEX_SUB_HARDWARE]:
-            sensor = self.handle.Hardware[requested_sensor[INDEX_HARDWARE]].SubHardware[requested_sensor[INDEX_SUB_HARDWARE]].Sensors[
-                requested_sensor[INDEX_SENSOR]]
+        hardware_id = requested_sensor[Sensor.HARDWARE]
+        sub_hardware_id = requested_sensor[Sensor.SUB_HARDWARE]
+        sensor_id = requested_sensor[Sensor.SENSOR]
+        if sub_hardware_id:
+            sensor = self.handle.Hardware[hardware_id].SubHardware[sub_hardware_id].Sensors[sensor_id]
         else:
-            sensor = self.handle.Hardware[requested_sensor[INDEX_HARDWARE]].Sensors[requested_sensor[INDEX_SENSOR]]
+            sensor = self.handle.Hardware[hardware_id].Sensors[sensor_id]
 
         return {
-            INDEX_HARDWARE: requested_sensor[INDEX_HARDWARE],
-            INDEX_SUB_HARDWARE: requested_sensor[INDEX_SUB_HARDWARE],
-            INDEX_SENSOR: requested_sensor[INDEX_SENSOR],
-            INDEX_DELAY: requested_sensor[INDEX_DELAY],
-            INDEX_VALUE: sensor.Value,
-            INDEX_UNIT: SENSORS[sensor.SensorType].unit,
+            Sensor.HARDWARE: hardware_id,
+            Sensor.SUB_HARDWARE: sub_hardware_id,
+            Sensor.SENSOR: sensor_id,
+            Sensor.DELAY: requested_sensor[Sensor.DELAY],
+            Sensor.VALUE: sensor.Value,
+            Sensor.UNIT: SENSOR_TYPES[sensor.SensorType].unit,
         }
 
     def fetch_stats(self):
@@ -159,13 +163,13 @@ class HardwareMonitor:
         if sensor.Value is not None:
             cprint(
                 COLORS.GREEN,
-                "TYPE: {}, NAME: {}, VALUE: {} {}, [HARDWARE, SUB-HARDWARE, SENSOR] = [{}, {}, {}]".format(
-                    SENSORS[sensor.SensorType].name,
+                "TYPE: {}, NAME: {}, VALUE: {} {}, {{[Sensor.HARDWARE]: {}, [Sensor.SUB_HARDWARE]: {}, [Sensor.SENSOR]: {}}}".format(
+                    SENSOR_TYPES[sensor.SensorType].name,
                     sensor.Name,
                     sensor.Value,
-                    SENSORS[sensor.SensorType].unit,
+                    SENSOR_TYPES[sensor.SensorType].unit,
                     hardware_index,
-                    sub_hardware_index,
+                    sub_hardware_index if sub_hardware_index else "null",
                     sensor_index,
                 )
             )

@@ -13,7 +13,6 @@ self.datas should be an array per client, right now it's sending to anyone conne
 
 
 RENDU:
-# TODO change requested_sensors from List to dictionary
 # TODO Client button (and "action": "stop_data") to stop sending hardware updates
 # TODO List requested_sensors needed for laptop testing
 # TODO List requested_sensors for Desktop testing
