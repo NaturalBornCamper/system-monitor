@@ -13,14 +13,21 @@ self.datas should be an array per client, right now it's sending to anyone conne
 
 
 RENDU:
-# TODO Add logging for info and errors, so tha if program crashes (socket in use for example), I know about it
 # TODO Find out why  “Only one usage of each socket address is normally permitted” sometimes
+# TODO List requested_sensors for Desktop testing
+# TODO Create interface with graphs and how I want it to look
+# TODO Logging! (See category below)
+# TODO Clear all the console output and add useful info/debug/errors in logging
 # TODO Client button (and "action": "stop_data") to stop sending hardware updates
 # TODO List requested_sensors needed for laptop testing
-# TODO List requested_sensors for Desktop testing
-# TODO Change fetch_stats to reflect Dictionary instead of List
-# TODO Create interface with graphs and how I want it to look
 # TODO Client update UI with each data coming up
+
+LOGGING:
+# TODO Proper logging method or class (Need level:info-debug-error) and tag, like Android. Would be hardware-task-thread-communication-...
+# TODO RotatingFileHandler?
+# TODO Add Date, level, name
+# TODO Add logging for info and errors, so that if program crashes (socket in use for example), I know about it
+# TODO Have a flag or something to display in console as well as file if flag is set to debug, with colors per tag (yellow = hardware, thread=blue, etc...)
 
 
 If getting error "cannot build assembly", it's because the dll is locked:
