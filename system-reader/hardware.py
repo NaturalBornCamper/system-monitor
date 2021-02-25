@@ -24,8 +24,8 @@ from collections.abc import Mapping
 
 
 class HardwareMonitor:
-    handle = None
-    update_times = {}
+    handle = None  # Hardware.Computer
+    update_times: Dict[Tuple[int, int], float] = {}
     executor: ThreadPoolExecutor = ThreadPoolExecutor(max_workers=3)
     futures: Dict[Tuple[int, int], Future] = {}
 
@@ -51,10 +51,13 @@ class HardwareMonitor:
         print("initialized")
 
     def __del__(self):
-        self.executor.shutdown(cancel_futures=True)
+        self.executor.shutdown(wait=False)
+        # Feb 2021
+        # "cancel_futures" param was added in Python 3.9, but clr wasn't compiled for Python 3.9 yet, need to wait..
+        # self.executor.shutdown(wait=False, cancel_futures=True)
 
     async def update_if_needed(self, server: 'Server', websocket: WebSocketClientProtocol,
-                               sensor: List[Union[int, str]]):
+                               sensor: List[Union[int, str]]) -> None:
         hardware_id = sensor[Sensor.HARDWARE]
         sub_hardware_id = sensor[Sensor.SUB_HARDWARE]
         delay = sensor[Sensor.DELAY]
@@ -76,7 +79,7 @@ class HardwareMonitor:
             await self.create_update_callback(server, websocket, sensor)
 
     async def create_update_callback(self, server: 'Server', websocket: WebSocketClientProtocol,
-                                     sensor: List[Union[int, str]]):
+                                     sensor: List[Union[int, str]]) -> None:
         hardware_id = sensor[Sensor.HARDWARE]
         sub_hardware_id = sensor[Sensor.SUB_HARDWARE]
         print("create_update_task:", hardware_id, time.time())
@@ -95,7 +98,10 @@ class HardwareMonitor:
 
             cprint(COLORS.YELLOW, f"got update from other future: ({hardware_id},{sub_hardware_id})")
 
-    def updater_thread(self, websocket: WebSocketClientProtocol, sensor: List[Union[int, str]] = None):
+    # Note: Return type hint is a bit useless here as it will be placed in the "future" object, never
+    # called directly. Left it there for reference
+    def updater_thread(self, websocket: WebSocketClientProtocol, sensor: List[Union[int, str]]) \
+            -> Dict[str, Union[List[Union[int, str]], WebSocketClientProtocol]]:
         # print("Executing our Task on Process {}".format(os.getpid()))
         begin = time.time()
         hardware_id = sensor[Sensor.HARDWARE]
@@ -117,7 +123,7 @@ class HardwareMonitor:
             "sensor": sensor,
         }
 
-    def get_sensor_value(self, requested_sensor: List[Union[int, str]]):
+    def get_sensor_value(self, requested_sensor: List[Union[int, str]]) -> Dict[str, Union[int, float, str]]:
         hardware_id = requested_sensor[Sensor.HARDWARE]
         sub_hardware_id = requested_sensor[Sensor.SUB_HARDWARE]
         sensor_id = requested_sensor[Sensor.SENSOR]
@@ -135,7 +141,7 @@ class HardwareMonitor:
             Sensor.UNIT: SENSOR_TYPES[sensor.SensorType].unit,
         }
 
-    def fetch_stats(self):
+    def fetch_stats(self) -> None:
         for h, hardware in enumerate(self.handle.Hardware):
             hardware.Update()
             cprint(COLORS.BRIGHT_BLUE, "HARDWARE TYPE: {}, NAME: {} ({}, {})".format(
@@ -159,7 +165,8 @@ class HardwareMonitor:
                         self.parse_sensor(sensor, hardware_index=h, sub_hardware_index=sh, sensor_index=s)
             print("")
 
-    def parse_sensor(self, sensor, hardware_index: int, sub_hardware_index: int = None, sensor_index: int = None):
+    def parse_sensor(self, sensor, hardware_index: int, sub_hardware_index: int = None, sensor_index: int = None) \
+            -> None:
         if sensor.Value is not None:
             cprint(
                 COLORS.GREEN,

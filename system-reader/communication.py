@@ -23,7 +23,7 @@ from websockets import WebSocketClientProtocol
 
 class Client:
     hardware_tasks: List[Task]
-    sensor_data: List[Dict[int, str]]
+    sensor_data: List[Dict[str, Union[int, float, str]]]
     broadcast_task: Task = None
 
     # Note: Need to create new lists in constructor, or they will share reference to same list
@@ -31,7 +31,7 @@ class Client:
         self.hardware_tasks = []
         self.sensor_data = []
 
-    def cancel_all_hardware_tasks(self):
+    def cancel_all_hardware_tasks(self) -> None:
         for task in self.hardware_tasks:
             task.cancel()
         self.hardware_tasks.clear()
@@ -69,7 +69,7 @@ class Server:
         asyncio.get_event_loop().run_until_complete(start_server)
         asyncio.get_event_loop().run_forever()
 
-    async def broadcast(self, websocket: WebSocketClientProtocol):
+    async def broadcast(self, websocket: WebSocketClientProtocol) -> None:
         while True:
             if websocket.state == State.CLOSED:
                 cprint(COLORS.YELLOW, "Client disconnected (found out during broadcast iteration)")
@@ -89,51 +89,43 @@ class Server:
             # TODO Should specific broadcast delay be requested by client instead?
             await asyncio.sleep(WEBSOCKET_BROADCAST_DELAY_SECONDS)
 
-    async def disconnect_client(self, websocket: WebSocketClientProtocol):
+    async def disconnect_client(self, websocket: WebSocketClientProtocol) -> None:
         if client := self.clients.pop(websocket, None):
             # TODO Check if any threads were going to send back data to callback for websocket sending
             client.cancel_all_hardware_tasks()
             client.broadcast_task.cancel()
         await websocket.close()
 
-    async def periodic(self, websocket: WebSocketClientProtocol, sensor: List[Union[int, str]] = None):
+    async def periodic(self, websocket: WebSocketClientProtocol, sensor: List[Union[int, str]]) -> None:
         while True:
             await self.monitor.update_if_needed(self, websocket, sensor=sensor)
             print('periodic sensor', sensor[Sensor.HARDWARE], sensor[Sensor.SUB_HARDWARE], sensor[Sensor.SENSOR])
             pprint(self.clients[websocket].hardware_tasks)
             await asyncio.sleep(sensor[Sensor.DELAY])
 
-    def bobby(self):
-        print('connection lost ya')
-
-    async def serve_new_client(self, websocket: WebSocketClientProtocol, path):
+    async def serve_new_client(self, websocket: WebSocketClientProtocol, path: str) -> None:
         print("New client connected: ", websocket)
         self.clients[websocket] = Client()
         self.clients[websocket].broadcast_task = asyncio.create_task(self.broadcast(websocket))
 
-        try:
-            async for message in websocket:
-                print('-------------------------MESSAGE RECEIVED----------------------------')
-                data = json.loads(message)
-                pprint(data)
-                if 'action' in data and data['action'] == Actions.SET_SENSORS:
-                    self.clients[websocket].cancel_all_hardware_tasks()
-                    for sensor in data['requested_sensors']:
-                        self.clients[websocket].hardware_tasks.append(asyncio.create_task(self.periodic(
-                            websocket=websocket,
-                            sensor=sensor
-                        )))
-                    print(self.clients[websocket].hardware_tasks)
-        # except websockets.exceptions.ConnectionClosed:
-        except websockets.exceptions.ConnectionClosedError:
-            cprint(COLORS.YELLOW, "Client disconnected (found out while checking messages)")
-            return await self.disconnect_client(websocket)
+        async for message in websocket:
+            print('-------------------------MESSAGE RECEIVED----------------------------')
+            data = json.loads(message)
+            pprint(data)
+            if 'action' in data and data['action'] == Actions.SET_SENSORS:
+                self.clients[websocket].cancel_all_hardware_tasks()
+                for sensor in data['requested_sensors']:
+                    self.clients[websocket].hardware_tasks.append(asyncio.create_task(self.periodic(
+                        websocket=websocket,
+                        sensor=sensor
+                    )))
+                print(self.clients[websocket].hardware_tasks)
 
-    def callback(self, fut: Future = None, websocket: WebSocketClientProtocol = None, sensor: List = None):
-        if fut:
-            cprint(COLORS.BRIGHT_YELLOW, "Future running?", fut.running())
-            websocket = fut.result()["websocket"]
-            sensor = fut.result()["sensor"]
+    def callback(self, future: Future = None, websocket: WebSocketClientProtocol = None, sensor: List = None) -> None:
+        if future:
+            cprint(COLORS.BRIGHT_YELLOW, "Future running?", future.running())
+            websocket = future.result()['websocket']
+            sensor = future.result()['sensor']
 
         # Check to make sure websocket still exists in case it was disconnected before update thread ended
         if websocket in self.clients:
