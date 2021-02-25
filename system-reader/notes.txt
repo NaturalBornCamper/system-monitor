@@ -13,6 +13,8 @@ self.datas should be an array per client, right now it's sending to anyone conne
 
 
 RENDU:
+# TODO Add logging for info and errors, so tha if program crashes (socket in use for example), I know about it
+# TODO Find out why  “Only one usage of each socket address is normally permitted” sometimes
 # TODO Client button (and "action": "stop_data") to stop sending hardware updates
 # TODO List requested_sensors needed for laptop testing
 # TODO List requested_sensors for Desktop testing
