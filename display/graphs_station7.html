@@ -1,0 +1,51 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>STATION7</title>
+    <script src="constants.js"></script>
+    <link rel="stylesheet" href="css/reset.css">
+</head>
+<body>
+<style>
+    .graph{
+        border: 1px solid black;
+        width: 200px;
+    }
+    .chart{
+    }
+    .graph-histogram{
+    }
+    .graph-value {
+        display: inline-block;
+    }
+    .graph-chart-point{
+        width: 1px;
+        border-top: 1px solid red;
+    }
+    .graph-histogram-bar{
+        width: 5px;
+        background-color: red;
+    }
+</style>
+
+<script>
+    tryConnection();
+    sensors1();
+</script>
+
+<div id="cpu-load" class="graph graph-chart">
+    <div class="graph-value graph-chart-point" style="height: 80px"></div>
+    <div class="graph-value graph-chart-point" style="height: 70px"></div>
+    <div class="graph-value graph-chart-point" style="height: 90px"></div>
+    <div class="graph-value graph-chart-point" style="height: 40px"></div>
+</div>
+<br><br><br><br>
+<div id="cpu-temp" class="graph graph-histogram">
+    <div class="graph-value graph-histogram-bar" style="height: 80px"></div>
+    <div class="graph-value graph-histogram-bar" style="height: 70px"></div>
+    <div class="graph-value graph-histogram-bar" style="height: 90px"></div>
+    <div class="graph-value graph-histogram-bar" style="height: 40px"></div>
+</div>
+</body>
+</html>
