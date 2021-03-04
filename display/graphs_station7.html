@@ -9,8 +9,14 @@
 </head>
 <body>
 <style>
-    body{
+    html, body {
+        overflow: hidden;
+    }
+    body {
         background-color: #111;
+        background-image: url("images/grid-background.gif");
+        /*background-image: url("images/grid_white_inverted.gif");*/
+        background-repeat: repeat;
     }
     .graph {
         /*border: 1px solid black;*/
@@ -18,8 +24,9 @@
         font-size: 0;
         position: relative;
         display: inline-block;
-        /*box-sizing: border-box;*/
+        box-sizing: border-box;
         /*display: flex;*/
+        background-color: rgba(0,0,0,15%);
     }
 
     .chart {
@@ -48,8 +55,8 @@
     }
 
     .graph-histogram-bar {
-        width: 5px;
-        background-color: red;
+        box-sizing: border-box;
+        border: 1px solid black;
     }
 </style>
 
@@ -67,8 +74,7 @@
         <div class="legend-name">CPU Load</div>
         <div class="legend-value"></div>
     </div>
-</div>
-<div id="cpu-temp" class="graph graph-histogram">
+</div><div id="cpu-temp" class="graph graph-histogram">
     <div class="graph-values"></div>
     <div class="graph-legend">
         <div class="legend-name">CPU Tempe</div>
@@ -81,6 +87,7 @@
     const CHART_HEIGHT = 100;
     const CHART_VALUE_COUNT = 20;
     const CHART_VALUE_WIDTH = Math.floor(CHART_WIDTH / CHART_VALUE_COUNT);
+    const CHART_BAR_OPACITY = '50%';
     const chartsSettings = [
         {
             [Display.LABEL]: 'CPU Load',
@@ -147,7 +154,7 @@
         // Calculates green to red color with a value from 0 to 1
         getColor(value) {
             let hue = ((1 - value) * 120).toString(10);
-            return ["hsl(", hue, ",100%,50%)"].join("");
+            return `hsla(${hue}, 100%, 50%, ${CHART_BAR_OPACITY})`;
         }
 
         pushValue(sensorData) {
