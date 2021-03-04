@@ -4,48 +4,235 @@
     <meta charset="UTF-8">
     <title>STATION7</title>
     <script src="constants.js"></script>
+    <script src="js/communication.js"></script>
     <link rel="stylesheet" href="css/reset.css">
 </head>
 <body>
 <style>
-    .graph{
-        border: 1px solid black;
-        width: 200px;
+    body{
+        background-color: #111;
     }
-    .chart{
+    .graph {
+        /*border: 1px solid black;*/
+        /*margin: 5px;*/
+        font-size: 0;
+        position: relative;
+        display: inline-block;
+        /*box-sizing: border-box;*/
+        /*display: flex;*/
     }
-    .graph-histogram{
+
+    .chart {
     }
+
+    .graph-histogram {
+    }
+
     .graph-value {
         display: inline-block;
     }
-    .graph-chart-point{
+
+    .graph-legend {
+        background-color: rgba(0, 0, 0, 0.5);
+        font-size: small;
+        color: white;
+        position: absolute;
+        left: 0;
+        bottom: 0;
+        padding: 5px;
+    }
+
+    .graph-chart-point {
         width: 1px;
         border-top: 1px solid red;
     }
-    .graph-histogram-bar{
+
+    .graph-histogram-bar {
         width: 5px;
         background-color: red;
     }
 </style>
 
+
+<!--<div id="cpu-temp" class="graph graph-chart">-->
+<!--    <div class="graph-value graph-chart-point" style="height: 80px"></div>-->
+<!--    <div class="graph-value graph-chart-point" style="height: 70px"></div>-->
+<!--    <div class="graph-value graph-chart-point" style="height: 90px"></div>-->
+<!--    <div class="graph-value graph-chart-point" style="height: 40px"></div>-->
+<!--</div>-->
+<br><br><br><br>
+<div id="cpu-load" class="graph graph-histogram">
+    <div class="graph-values"></div>
+    <div class="graph-legend">
+        <div class="legend-name">CPU Load</div>
+        <div class="legend-value"></div>
+    </div>
+</div>
+<div id="cpu-temp" class="graph graph-histogram">
+    <div class="graph-values"></div>
+    <div class="graph-legend">
+        <div class="legend-name">CPU Tempe</div>
+        <div class="legend-value"></div>
+    </div>
+</div>
+
 <script>
+    const CHART_WIDTH = 400;
+    const CHART_HEIGHT = 100;
+    const CHART_VALUE_COUNT = 20;
+    const CHART_VALUE_WIDTH = Math.floor(CHART_WIDTH / CHART_VALUE_COUNT);
+    const chartsSettings = [
+        {
+            [Display.LABEL]: 'CPU Load',
+            [Sensor.HARDWARE]: 1,
+            [Sensor.SUB_HARDWARE]: null,
+            [Sensor.SENSOR]: 4,
+            [Sensor.DELAY]: 1,
+            [Display.ID]: 'cpu-load',
+            [Display.WIDTH]: CHART_WIDTH,
+            [Display.HEIGHT]: CHART_HEIGHT,
+            [Display.VALUE_COUNT]: CHART_VALUE_COUNT,
+            [Display.MIN_VALUE]: 0,
+            [Display.MAX_VALUE]: 100,
+        },
+        {
+            [Display.LABEL]: 'CPU Temp',
+            [Sensor.HARDWARE]: 1,
+            [Sensor.SUB_HARDWARE]: null,
+            [Sensor.SENSOR]: 9,
+            [Sensor.DELAY]: 3,
+            [Display.ID]: 'cpu-temp',
+            [Display.WIDTH]: CHART_WIDTH,
+            [Display.HEIGHT]: CHART_HEIGHT,
+            [Display.VALUE_COUNT]: CHART_VALUE_COUNT,
+            [Display.MIN_VALUE]: 10,
+            [Display.MAX_VALUE]: 80,
+        }
+    ]
+    let charts = {};
+    let requested_sensors = [];
+
+    class Chart {
+        constructor(options) {
+            this.values = [];
+            // this.id = options.id;
+            // this.width = options.width;
+            this.height = options.height;
+            this.valueCount = options.valueCount;
+            this.element = document.getElementById(options.id);
+            this.elementValues = this.element.getElementsByClassName("graph-values")[0];
+            this.legend = this.element.getElementsByClassName("graph-legend")[0];
+            this.minValue = options.minValue;
+            this.maxValue = options.maxValue;
+
+            this.element.style.height = `${options.height}px`;
+            this.element.style.width = `${options.width}px`;
+            let createdValue;
+
+            for (let i = 0; i < options.valueCount; ++i) {
+                createdValue = document.createElement('DIV');
+                createdValue.className = 'graph-value graph-histogram-bar';
+                createdValue.style.height = `0`;
+                // createdValue.style.height = `${this.getCalculatedHeight(i)}px`;
+                createdValue.style.width = `${CHART_VALUE_WIDTH}px`;
+                createdValue.style.marginBottom = `-${options.height}px`;
+                this.elementValues.appendChild(createdValue);
+            }
+        }
+
+        // getCalculatedHeight(value) {
+        //     return Math.floor(value / this.maxValue * this.height);
+        // }
+
+        // Calculates green to red color with a value from 0 to 1
+        getColor(value) {
+            let hue = ((1 - value) * 120).toString(10);
+            return ["hsl(", hue, ",100%,50%)"].join("");
+        }
+
+        pushValue(sensorData) {
+            this.values.push(sensorData[Sensor.VALUE]);
+            if (this.values.length > this.valueCount) {
+                this.values.shift();
+            }
+            this.element.getElementsByClassName('legend-value')[0].innerHTML = `${sensorData[Sensor.VALUE]} ${sensorData[Sensor.UNIT]}`;
+
+            // console.log(this.values);
+            let x = this.valueCount - 1;
+
+            for (let i = this.values.length - 1; i >= 0; --i) {
+                if (typeof this.elementValues.children[x] === 'undefined') {
+                    return console.error(`Chart child doesn't exist: ${x}`)
+                }
+                let ratio = this.values[i] / this.maxValue;
+                this.elementValues.children[x].style.height = `${ratio * this.height}px`;
+                this.elementValues.children[x].style.backgroundColor = this.getColor(ratio);
+                --x;
+            }
+
+            // let chart = this;
+            // this.values.forEach(function (value, index) {
+            //     if (typeof chart.elementValues.children[x] === 'undefined') {
+            //         return console.error(`Chart child doesn't exist: ${x}`)
+            //     }
+            //     let ratio = value / chart.maxValue;
+            //     chart.elementValues.children[x].style.height = `${ratio * chart.height}px`;
+            //     chart.elementValues.children[x].style.backgroundColor = chart.getColor(ratio);
+            //     --x;
+            // });
+        }
+    }
+
+    function startGraphs() {
+        chartsSettings.forEach(function (chartSettings, index) {
+            let date = new Date();
+            // let identifier = `${date.getTime()}${date.getMilliseconds()}`;
+            charts[chartSettings[Display.ID]] = new Chart({
+                id: chartSettings[Display.ID],
+                width: chartSettings[Display.WIDTH],
+                height: chartSettings[Display.HEIGHT],
+                valueCount: chartSettings[Display.VALUE_COUNT],
+                minValue: chartSettings[Display.MIN_VALUE],
+                maxValue: chartSettings[Display.MAX_VALUE],
+            });
+
+            requested_sensors.push({
+                [Display.ID]: chartSettings[Display.ID],
+                [Display.LABEL]: chartSettings[Display.LABEL],
+                [Sensor.HARDWARE]: chartSettings[Sensor.HARDWARE],
+                [Sensor.SUB_HARDWARE]: chartSettings[Sensor.SUB_HARDWARE],
+                [Sensor.SENSOR]: chartSettings[Sensor.SENSOR],
+                [Sensor.DELAY]: chartSettings[Sensor.DELAY]
+            });
+            console.log(requested_sensors);
+
+            socket.send(JSON.stringify({
+                'action': Actions.SET_SENSORS,
+                'requested_sensors': requested_sensors
+            }));
+        });
+    }
+
     tryConnection();
-    sensors1();
 </script>
 
-<div id="cpu-load" class="graph graph-chart">
-    <div class="graph-value graph-chart-point" style="height: 80px"></div>
-    <div class="graph-value graph-chart-point" style="height: 70px"></div>
-    <div class="graph-value graph-chart-point" style="height: 90px"></div>
-    <div class="graph-value graph-chart-point" style="height: 40px"></div>
-</div>
-<br><br><br><br>
-<div id="cpu-temp" class="graph graph-histogram">
-    <div class="graph-value graph-histogram-bar" style="height: 80px"></div>
-    <div class="graph-value graph-histogram-bar" style="height: 70px"></div>
-    <div class="graph-value graph-histogram-bar" style="height: 90px"></div>
-    <div class="graph-value graph-histogram-bar" style="height: 40px"></div>
-</div>
 </body>
 </html>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+

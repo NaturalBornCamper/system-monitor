@@ -132,14 +132,19 @@ class HardwareMonitor:
         else:
             sensor = self.handle.Hardware[hardware_id].Sensors[sensor_id]
 
-        return {
-            Sensor.HARDWARE: hardware_id,
-            Sensor.SUB_HARDWARE: sub_hardware_id,
-            Sensor.SENSOR: sensor_id,
-            Sensor.DELAY: requested_sensor[Sensor.DELAY],
-            Sensor.VALUE: sensor.Value,
-            Sensor.UNIT: SENSOR_TYPES[sensor.SensorType].unit,
-        }
+        requested_sensor[Sensor.VALUE] = sensor.Value
+        requested_sensor[Sensor.UNIT] = SENSOR_TYPES[sensor.SensorType].unit
+        return requested_sensor
+        # return {
+        #     Sensor.ID: requested_sensor[Sensor.ID],
+        #     Sensor.LABEL: requested_sensor[Sensor.LABEL],
+        #     Sensor.HARDWARE: hardware_id,
+        #     Sensor.SUB_HARDWARE: sub_hardware_id,
+        #     Sensor.SENSOR: sensor_id,
+        #     Sensor.DELAY: requested_sensor[Sensor.DELAY],
+        #     Sensor.VALUE: sensor.Value,
+        #     Sensor.UNIT: SENSOR_TYPES[sensor.SensorType].unit,
+        # }
 
     def fetch_stats(self) -> None:
         for h, hardware in enumerate(self.handle.Hardware):

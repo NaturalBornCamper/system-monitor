@@ -1,4 +1,3 @@
-
 let connection;
 const RETRY_DELAY = 1000;
 let socket;
@@ -23,6 +22,7 @@ function tryConnection() {
     // Connection opened
     socket.addEventListener('open', function (event) {
         init(socket);
+        startGraphs();
 
         // socket.send(JSON.stringify({
         //     'action': 'set_sensors',
@@ -40,34 +40,16 @@ function tryConnection() {
 function init(socket) {
     // Listen for messages
     socket.addEventListener('message', function (event) {
-        console.log('Message from server ', event.data);
+        // console.log('Message from server ', event.data);
+        data = JSON.parse(event.data);
+
+        data.forEach(function (sensor_data, index) {
+            console.log(sensor_data)
+            charts[sensor_data[Display.ID]].pushValue(sensor_data);
+        });
     });
     socket.addEventListener('close', function (event) {
         console.log('close');
         setTimeout(tryConnection, RETRY_DELAY);
     });
-}
-
-
-function sensors1(){
-    socket.send(JSON.stringify({
-        'action': Actions.SET_SENSORS,
-        'requested_sensors': [{
-            [Sensor.HARDWARE]: 1,
-            [Sensor.SUB_HARDWARE]: null,
-            [Sensor.SENSOR]: 4,
-            [Sensor.DELAY]: 1
-        }]
-    }));
-}
-function sensors2(){
-    socket.send(JSON.stringify({
-        'action': Actions.SET_SENSORS,
-        'requested_sensors': [{
-            [Sensor.HARDWARE]: 1,
-            [Sensor.SUB_HARDWARE]: null,
-            [Sensor.SENSOR]: 9,
-            [Sensor.DELAY]: 3
-        }]
-    }));
 }

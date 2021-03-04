@@ -13,6 +13,16 @@ class Sensor {
     static UNIT = "unit";
 }
 
+class Display {
+    static ID = 'id';
+    static LABEL = 'label';
+    static WIDTH = 'width';
+    static HEIGHT = 'height';
+    static VALUE_COUNT = 'value_count';
+    static MIN_VALUE = 'min_value';
+    static MAX_VALUE = 'max_value';
+}
+
 // requested_sensors = {}
 // requested_sensors[Sensor.HARDWARE] = 4;
 // requested_sensors[Sensor.DELAY] = 0.5;
