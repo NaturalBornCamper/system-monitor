@@ -11,7 +11,8 @@ function tryConnection() {
     //const socket = new WebSocket('ws://127.0.0.1:2346');
     //const socket = new WebSocket('ws://192.168.0.65:2346');
     // const socket = new WebSocket('ws://192.168.0.65:2346');
-    socket = new WebSocket('ws://localhost:2346');
+    // socket = new WebSocket('ws://localhost:2346');
+    socket = new WebSocket(`ws://${SERVER_IP}:${SERVER_PORT}`);
 
     socket.addEventListener('error', function (event) {
         console.log('error');
