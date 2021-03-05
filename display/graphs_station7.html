@@ -6,60 +6,9 @@
     <script src="constants.js"></script>
     <script src="js/communication.js"></script>
     <link rel="stylesheet" href="css/reset.css">
+    <link rel="stylesheet" href="css/main.css">
 </head>
 <body>
-<style>
-    html, body {
-        overflow: hidden;
-    }
-    body {
-        background-color: #111;
-        background-image: url("images/grid-background.gif");
-        /*background-image: url("images/grid_white_inverted.gif");*/
-        background-repeat: repeat;
-    }
-    .graph {
-        /*border: 1px solid black;*/
-        /*margin: 5px;*/
-        font-size: 0;
-        position: relative;
-        display: inline-block;
-        box-sizing: border-box;
-        /*display: flex;*/
-        background-color: rgba(0,0,0,15%);
-    }
-
-    .chart {
-    }
-
-    .graph-histogram {
-    }
-
-    .graph-value {
-        display: inline-block;
-    }
-
-    .graph-legend {
-        background-color: rgba(0, 0, 0, 0.5);
-        font-size: small;
-        color: white;
-        position: absolute;
-        left: 0;
-        bottom: 0;
-        padding: 5px;
-    }
-
-    .graph-chart-point {
-        width: 1px;
-        border-top: 1px solid red;
-    }
-
-    .graph-histogram-bar {
-        box-sizing: border-box;
-        border: 1px solid black;
-    }
-</style>
-
 
 <!--<div id="cpu-temp" class="graph graph-chart">-->
 <!--    <div class="graph-value graph-chart-point" style="height: 80px"></div>-->
@@ -71,19 +20,22 @@
 <div id="cpu-load" class="graph graph-histogram">
     <div class="graph-values"></div>
     <div class="graph-legend">
-        <div class="legend-name">CPU Load</div>
+        <div class="legend-label"></div>
         <div class="legend-value"></div>
     </div>
-</div><div id="cpu-temp" class="graph graph-histogram">
+</div>
+<div id="cpu-temp" class="graph graph-histogram">
     <div class="graph-values"></div>
     <div class="graph-legend">
-        <div class="legend-name">CPU Tempe</div>
+        <div class="legend-label"></div>
         <div class="legend-value"></div>
     </div>
 </div>
 
 <script>
     const SERVER_IP = '192.168.0.65';
+    // const SERVER_IP = '127.0.0.1';
+    // const SERVER_IP = 'localhost';
     const SERVER_PORT = 2346;
     const CHART_WIDTH = 400;
     const CHART_HEIGHT = 100;
@@ -136,6 +88,7 @@
 
             this.element.style.height = `${options.height}px`;
             this.element.style.width = `${options.width}px`;
+            this.legend.getElementsByClassName('legend-label')[0].innerHTML = options.label;
             let createdValue;
 
             for (let i = 0; i < options.valueCount; ++i) {
@@ -159,12 +112,19 @@
             return `hsla(${hue}, 100%, 50%, ${CHART_BAR_OPACITY})`;
         }
 
+        // round(value){
+        //     return value.toLocaleString('en-US', {
+        //         minimumFractionDigits: 2,
+        //         maximumFractionDigits: 4
+        //     });
+        // }
+
         pushValue(sensorData) {
             this.values.push(sensorData[Sensor.VALUE]);
             if (this.values.length > this.valueCount) {
                 this.values.shift();
             }
-            this.element.getElementsByClassName('legend-value')[0].innerHTML = `${sensorData[Sensor.VALUE]} ${sensorData[Sensor.UNIT]}`;
+            this.element.getElementsByClassName('legend-value')[0].innerHTML = `${sensorData[Sensor.VALUE].toFixed(MAX_DECIMALS)} ${sensorData[Sensor.UNIT]}`;
 
             // console.log(this.values);
             let x = this.valueCount - 1;
@@ -198,6 +158,7 @@
             // let identifier = `${date.getTime()}${date.getMilliseconds()}`;
             charts[chartSettings[Display.ID]] = new Chart({
                 id: chartSettings[Display.ID],
+                label: chartSettings[Display.LABEL],
                 width: chartSettings[Display.WIDTH],
                 height: chartSettings[Display.HEIGHT],
                 valueCount: chartSettings[Display.VALUE_COUNT],

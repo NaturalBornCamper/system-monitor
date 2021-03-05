@@ -3,6 +3,7 @@ import json
 from pprint import pprint
 from typing import List, Set, Dict, Union
 
+import socket
 import websockets
 from pyrotools.console import cprint, COLORS
 from websockets.protocol import State
@@ -62,8 +63,15 @@ class Server:
     ]
 
     def __init__(self, hardware_monitor: HardwareMonitor):
+        # Get host IP
+        s = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+        s.connect(("8.8.8.8", 80))
+        ip = s.getsockname()[0]
+        s.close()
+
         self.monitor = hardware_monitor
-        start_server = websockets.serve(self.serve_new_client, "127.0.0.1", 2346)
+        start_server = websockets.serve(self.serve_new_client, ip, 2346)
+        # start_server = websockets.serve(self.serve_new_client, "127.0.0.1", 2346)
         cprint(COLORS.CYAN, "Listening on port 2346")
 
         asyncio.get_event_loop().run_until_complete(start_server)

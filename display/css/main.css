@@ -1,0 +1,53 @@
+
+html, body {
+    overflow: hidden;
+    font-size: 0;
+}
+body {
+    background-color: #111;
+    background-image: url("../images/grid-background.gif");
+    /*background-image: url("../images/grid_white_inverted.gif");*/
+    background-repeat: repeat;
+}
+.graph {
+    /*border: 1px solid black;*/
+    /*margin: 5px;*/
+    font-size: 0;
+    position: relative;
+    display: inline-block;
+    box-sizing: border-box;
+    /*display: flex;*/
+    background-color: rgba(0,0,0,0.15);
+}
+
+.chart {
+}
+
+.graph-histogram {
+}
+
+.graph-value {
+    display: inline-block;
+}
+
+.graph-legend {
+    background-color: rgba(0, 0, 0, 0.5);
+    font-family: "Courier New", sans-serif;
+    font-weight: bold;
+    font-size: 20px;
+    color: white;
+    position: absolute;
+    left: 0;
+    bottom: 0;
+    padding: 5px;
+}
+
+.graph-chart-point {
+    width: 1px;
+    border-top: 1px solid red;
+}
+
+.graph-histogram-bar {
+    box-sizing: border-box;
+    border: 1px solid black;
+}
