@@ -3,34 +3,14 @@
 <head>
     <meta charset="UTF-8">
     <title>STATION7</title>
-    <script src="constants.js"></script>
-    <script src="js/communication.js"></script>
     <link rel="stylesheet" href="css/reset.css">
     <link rel="stylesheet" href="css/main.css">
+    <script src="constants.js"></script>
+    <script src="js/chart.js"></script>
+    <script src="js/communication.js"></script>
 </head>
 <body>
-
-<!--<div id="cpu-temp" class="graph graph-chart">-->
-<!--    <div class="graph-value graph-chart-point" style="height: 80px"></div>-->
-<!--    <div class="graph-value graph-chart-point" style="height: 70px"></div>-->
-<!--    <div class="graph-value graph-chart-point" style="height: 90px"></div>-->
-<!--    <div class="graph-value graph-chart-point" style="height: 40px"></div>-->
-<!--</div>-->
-<br><br><br><br>
-<div id="cpu-load" class="graph graph-histogram">
-    <div class="graph-values"></div>
-    <div class="graph-legend">
-        <div class="legend-label"></div>
-        <div class="legend-value"></div>
-    </div>
-</div>
-<div id="cpu-temp" class="graph graph-histogram">
-    <div class="graph-values"></div>
-    <div class="graph-legend">
-        <div class="legend-label"></div>
-        <div class="legend-value"></div>
-    </div>
-</div>
+<div id="charts"></div>
 
 <script>
     const SERVER_IP = '192.168.0.65';
@@ -41,7 +21,7 @@
     const CHART_HEIGHT = 100;
     const CHART_VALUE_COUNT = 20;
     const CHART_VALUE_WIDTH = Math.floor(CHART_WIDTH / CHART_VALUE_COUNT);
-    const CHART_BAR_OPACITY = '50%';
+    const CHART_BAR_OPACITY = '100%';
     const chartsSettings = [
         {
             [Display.LABEL]: 'CPU Load',
@@ -61,127 +41,99 @@
             [Sensor.HARDWARE]: 1,
             [Sensor.SUB_HARDWARE]: null,
             [Sensor.SENSOR]: 9,
-            [Sensor.DELAY]: 3,
+            [Sensor.DELAY]: 5,
             [Display.ID]: 'cpu-temp',
             [Display.WIDTH]: CHART_WIDTH,
             [Display.HEIGHT]: CHART_HEIGHT,
             [Display.VALUE_COUNT]: CHART_VALUE_COUNT,
             [Display.MIN_VALUE]: 10,
             [Display.MAX_VALUE]: 80,
-        }
+        },
+        {
+            [Display.LABEL]: 'GPU Load',
+            [Sensor.HARDWARE]: 3,
+            [Sensor.SUB_HARDWARE]: null,
+            [Sensor.SENSOR]: 4,
+            [Sensor.DELAY]: 1,
+            [Display.ID]: 'gpu-load',
+            [Display.WIDTH]: CHART_WIDTH,
+            [Display.HEIGHT]: CHART_HEIGHT,
+            [Display.VALUE_COUNT]: CHART_VALUE_COUNT,
+            [Display.MIN_VALUE]: 0,
+            [Display.MAX_VALUE]: 100,
+        },
+        {
+            [Display.LABEL]: 'GPU Temp',
+            [Sensor.HARDWARE]: 3,
+            [Sensor.SUB_HARDWARE]: null,
+            [Sensor.SENSOR]: 0,
+            [Sensor.DELAY]: 5,
+            [Display.ID]: 'gpu-temp',
+            [Display.WIDTH]: CHART_WIDTH,
+            [Display.HEIGHT]: CHART_HEIGHT,
+            [Display.VALUE_COUNT]: CHART_VALUE_COUNT,
+            [Display.MIN_VALUE]: 10,
+            [Display.MAX_VALUE]: 80,
+        },
+        {
+            [Display.LABEL]: 'SSD Load',
+            [Sensor.HARDWARE]: 6,
+            [Sensor.SUB_HARDWARE]: null,
+            [Sensor.SENSOR]: 10,
+            [Sensor.DELAY]: 1,
+            [Display.ID]: 'ssd-load',
+            [Display.WIDTH]: CHART_WIDTH,
+            [Display.HEIGHT]: CHART_HEIGHT,
+            [Display.VALUE_COUNT]: CHART_VALUE_COUNT,
+            [Display.MIN_VALUE]: 0,
+            [Display.MAX_VALUE]: 100,
+        },
+        {
+            [Display.LABEL]: 'SSD Temp',
+            [Sensor.HARDWARE]: 6,
+            [Sensor.SUB_HARDWARE]: null,
+            [Sensor.SENSOR]: 0,
+            [Sensor.DELAY]: 5,
+            [Display.ID]: 'ssd-temp',
+            [Display.WIDTH]: CHART_WIDTH,
+            [Display.HEIGHT]: CHART_HEIGHT,
+            [Display.VALUE_COUNT]: CHART_VALUE_COUNT,
+            [Display.MIN_VALUE]: 10,
+            [Display.MAX_VALUE]: 80,
+        },
+        {
+            [Display.LABEL]: 'Download',
+            [Sensor.HARDWARE]: 15,
+            [Sensor.SUB_HARDWARE]: null,
+            [Sensor.SENSOR]: 3,
+            [Sensor.DELAY]: 1,
+            [Display.ID]: 'download',
+            [Display.WIDTH]: CHART_WIDTH,
+            [Display.HEIGHT]: CHART_HEIGHT,
+            [Display.VALUE_COUNT]: CHART_VALUE_COUNT,
+            [Display.MIN_VALUE]: 0,
+            [Display.MAX_VALUE]: 13.35144048,
+            [Display.MULTIPLIER]: 0.00000095367432,
+            [Display.UNIT]: "MB/s",
+        },
+        {
+            [Display.LABEL]: 'Upload',
+            [Sensor.HARDWARE]: 15,
+            [Sensor.SUB_HARDWARE]: null,
+            [Sensor.SENSOR]: 2,
+            [Sensor.DELAY]: 1,
+            [Display.ID]: 'upload',
+            [Display.WIDTH]: CHART_WIDTH,
+            [Display.HEIGHT]: CHART_HEIGHT,
+            [Display.VALUE_COUNT]: CHART_VALUE_COUNT,
+            [Display.MIN_VALUE]: 0,
+            [Display.MAX_VALUE]: 3.81469728,
+            [Display.MULTIPLIER]: 0.00000095367432,
+            [Display.UNIT]: "MB/s",
+        },
     ]
     let charts = {};
     let requested_sensors = [];
-
-    class Chart {
-        constructor(options) {
-            this.values = [];
-            // this.id = options.id;
-            // this.width = options.width;
-            this.height = options.height;
-            this.valueCount = options.valueCount;
-            this.element = document.getElementById(options.id);
-            this.elementValues = this.element.getElementsByClassName("graph-values")[0];
-            this.legend = this.element.getElementsByClassName("graph-legend")[0];
-            this.minValue = options.minValue;
-            this.maxValue = options.maxValue;
-
-            this.element.style.height = `${options.height}px`;
-            this.element.style.width = `${options.width}px`;
-            this.legend.getElementsByClassName('legend-label')[0].innerHTML = options.label;
-            let createdValue;
-
-            for (let i = 0; i < options.valueCount; ++i) {
-                createdValue = document.createElement('DIV');
-                createdValue.className = 'graph-value graph-histogram-bar';
-                createdValue.style.height = `0`;
-                // createdValue.style.height = `${this.getCalculatedHeight(i)}px`;
-                createdValue.style.width = `${CHART_VALUE_WIDTH}px`;
-                createdValue.style.marginBottom = `-${options.height}px`;
-                this.elementValues.appendChild(createdValue);
-            }
-        }
-
-        // getCalculatedHeight(value) {
-        //     return Math.floor(value / this.maxValue * this.height);
-        // }
-
-        // Calculates green to red color with a value from 0 to 1
-        getColor(value) {
-            let hue = ((1 - value) * 120).toString(10);
-            return `hsla(${hue}, 100%, 50%, ${CHART_BAR_OPACITY})`;
-        }
-
-        // round(value){
-        //     return value.toLocaleString('en-US', {
-        //         minimumFractionDigits: 2,
-        //         maximumFractionDigits: 4
-        //     });
-        // }
-
-        pushValue(sensorData) {
-            this.values.push(sensorData[Sensor.VALUE]);
-            if (this.values.length > this.valueCount) {
-                this.values.shift();
-            }
-            this.element.getElementsByClassName('legend-value')[0].innerHTML = `${sensorData[Sensor.VALUE].toFixed(MAX_DECIMALS)} ${sensorData[Sensor.UNIT]}`;
-
-            // console.log(this.values);
-            let x = this.valueCount - 1;
-
-            for (let i = this.values.length - 1; i >= 0; --i) {
-                if (typeof this.elementValues.children[x] === 'undefined') {
-                    return console.error(`Chart child doesn't exist: ${x}`)
-                }
-                let ratio = this.values[i] / this.maxValue;
-                this.elementValues.children[x].style.height = `${ratio * this.height}px`;
-                this.elementValues.children[x].style.backgroundColor = this.getColor(ratio);
-                --x;
-            }
-
-            // let chart = this;
-            // this.values.forEach(function (value, index) {
-            //     if (typeof chart.elementValues.children[x] === 'undefined') {
-            //         return console.error(`Chart child doesn't exist: ${x}`)
-            //     }
-            //     let ratio = value / chart.maxValue;
-            //     chart.elementValues.children[x].style.height = `${ratio * chart.height}px`;
-            //     chart.elementValues.children[x].style.backgroundColor = chart.getColor(ratio);
-            //     --x;
-            // });
-        }
-    }
-
-    function startGraphs() {
-        chartsSettings.forEach(function (chartSettings, index) {
-            let date = new Date();
-            // let identifier = `${date.getTime()}${date.getMilliseconds()}`;
-            charts[chartSettings[Display.ID]] = new Chart({
-                id: chartSettings[Display.ID],
-                label: chartSettings[Display.LABEL],
-                width: chartSettings[Display.WIDTH],
-                height: chartSettings[Display.HEIGHT],
-                valueCount: chartSettings[Display.VALUE_COUNT],
-                minValue: chartSettings[Display.MIN_VALUE],
-                maxValue: chartSettings[Display.MAX_VALUE],
-            });
-
-            requested_sensors.push({
-                [Display.ID]: chartSettings[Display.ID],
-                [Display.LABEL]: chartSettings[Display.LABEL],
-                [Sensor.HARDWARE]: chartSettings[Sensor.HARDWARE],
-                [Sensor.SUB_HARDWARE]: chartSettings[Sensor.SUB_HARDWARE],
-                [Sensor.SENSOR]: chartSettings[Sensor.SENSOR],
-                [Sensor.DELAY]: chartSettings[Sensor.DELAY]
-            });
-            console.log(requested_sensors);
-
-            socket.send(JSON.stringify({
-                'action': Actions.SET_SENSORS,
-                'requested_sensors': requested_sensors
-            }));
-        });
-    }
 
     tryConnection();
 </script>

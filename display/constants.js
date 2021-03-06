@@ -23,6 +23,8 @@ class Display {
     static VALUE_COUNT = 'value_count';
     static MIN_VALUE = 'min_value';
     static MAX_VALUE = 'max_value';
+    static MULTIPLIER = 'multiplier';
+    static UNIT = 'unit';
 }
 
 // requested_sensors = {}

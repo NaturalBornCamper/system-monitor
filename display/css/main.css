@@ -9,7 +9,7 @@ body {
     /*background-image: url("../images/grid_white_inverted.gif");*/
     background-repeat: repeat;
 }
-.graph {
+.chart {
     /*border: 1px solid black;*/
     /*margin: 5px;*/
     font-size: 0;
@@ -23,15 +23,15 @@ body {
 .chart {
 }
 
-.graph-histogram {
+.chart-histogram {
 }
 
-.graph-value {
+.chart-value {
     display: inline-block;
 }
 
-.graph-legend {
-    background-color: rgba(0, 0, 0, 0.5);
+.chart-legend {
+    background-color: rgba(0, 0, 0, 0.65);
     font-family: "Courier New", sans-serif;
     font-weight: bold;
     font-size: 20px;
@@ -42,12 +42,12 @@ body {
     padding: 5px;
 }
 
-.graph-chart-point {
-    width: 1px;
-    border-top: 1px solid red;
-}
+/*.graph-chart-point {*/
+/*    width: 1px;*/
+/*    border-top: 1px solid red;*/
+/*}*/
 
-.graph-histogram-bar {
+.chart-histogram-bar {
     box-sizing: border-box;
     border: 1px solid black;
 }
