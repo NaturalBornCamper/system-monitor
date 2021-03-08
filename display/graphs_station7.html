@@ -11,6 +11,7 @@
 </head>
 <body>
 <div id="charts"></div>
+<div id="meters"></div>
 
 <script>
     const SERVER_IP = '192.168.0.65';
@@ -20,7 +21,6 @@
     const CHART_WIDTH = 400;
     const CHART_HEIGHT = 100;
     const CHART_VALUE_COUNT = 20;
-    const CHART_VALUE_WIDTH = Math.floor(CHART_WIDTH / CHART_VALUE_COUNT);
     const CHART_BAR_OPACITY = '100%';
     const chartsSettings = [
         {
@@ -30,9 +30,6 @@
             [Sensor.SENSOR]: 4,
             [Sensor.DELAY]: 1,
             [Display.ID]: 'cpu-load',
-            [Display.WIDTH]: CHART_WIDTH,
-            [Display.HEIGHT]: CHART_HEIGHT,
-            [Display.VALUE_COUNT]: CHART_VALUE_COUNT,
             [Display.MIN_VALUE]: 0,
             [Display.MAX_VALUE]: 100,
         },
@@ -43,9 +40,6 @@
             [Sensor.SENSOR]: 9,
             [Sensor.DELAY]: 5,
             [Display.ID]: 'cpu-temp',
-            [Display.WIDTH]: CHART_WIDTH,
-            [Display.HEIGHT]: CHART_HEIGHT,
-            [Display.VALUE_COUNT]: CHART_VALUE_COUNT,
             [Display.MIN_VALUE]: 10,
             [Display.MAX_VALUE]: 80,
         },
@@ -56,9 +50,6 @@
             [Sensor.SENSOR]: 4,
             [Sensor.DELAY]: 1,
             [Display.ID]: 'gpu-load',
-            [Display.WIDTH]: CHART_WIDTH,
-            [Display.HEIGHT]: CHART_HEIGHT,
-            [Display.VALUE_COUNT]: CHART_VALUE_COUNT,
             [Display.MIN_VALUE]: 0,
             [Display.MAX_VALUE]: 100,
         },
@@ -69,9 +60,6 @@
             [Sensor.SENSOR]: 0,
             [Sensor.DELAY]: 5,
             [Display.ID]: 'gpu-temp',
-            [Display.WIDTH]: CHART_WIDTH,
-            [Display.HEIGHT]: CHART_HEIGHT,
-            [Display.VALUE_COUNT]: CHART_VALUE_COUNT,
             [Display.MIN_VALUE]: 10,
             [Display.MAX_VALUE]: 80,
         },
@@ -82,9 +70,6 @@
             [Sensor.SENSOR]: 10,
             [Sensor.DELAY]: 1,
             [Display.ID]: 'ssd-load',
-            [Display.WIDTH]: CHART_WIDTH,
-            [Display.HEIGHT]: CHART_HEIGHT,
-            [Display.VALUE_COUNT]: CHART_VALUE_COUNT,
             [Display.MIN_VALUE]: 0,
             [Display.MAX_VALUE]: 100,
         },
@@ -95,9 +80,6 @@
             [Sensor.SENSOR]: 0,
             [Sensor.DELAY]: 5,
             [Display.ID]: 'ssd-temp',
-            [Display.WIDTH]: CHART_WIDTH,
-            [Display.HEIGHT]: CHART_HEIGHT,
-            [Display.VALUE_COUNT]: CHART_VALUE_COUNT,
             [Display.MIN_VALUE]: 10,
             [Display.MAX_VALUE]: 80,
         },
@@ -108,9 +90,6 @@
             [Sensor.SENSOR]: 3,
             [Sensor.DELAY]: 1,
             [Display.ID]: 'download',
-            [Display.WIDTH]: CHART_WIDTH,
-            [Display.HEIGHT]: CHART_HEIGHT,
-            [Display.VALUE_COUNT]: CHART_VALUE_COUNT,
             [Display.MIN_VALUE]: 0,
             [Display.MAX_VALUE]: 13.35144048,
             [Display.MULTIPLIER]: 0.00000095367432,
@@ -123,17 +102,49 @@
             [Sensor.SENSOR]: 2,
             [Sensor.DELAY]: 1,
             [Display.ID]: 'upload',
-            [Display.WIDTH]: CHART_WIDTH,
-            [Display.HEIGHT]: CHART_HEIGHT,
-            [Display.VALUE_COUNT]: CHART_VALUE_COUNT,
             [Display.MIN_VALUE]: 0,
             [Display.MAX_VALUE]: 3.81469728,
             [Display.MULTIPLIER]: 0.00000095367432,
             [Display.UNIT]: "MB/s",
         },
-    ]
+    ];
+    const metersSettings = [
+        {
+            [Display.LABEL]: 'Mem',
+            [Sensor.HARDWARE]: 2,
+            [Sensor.SUB_HARDWARE]: null,
+            [Sensor.SENSOR]: 2,
+            [Sensor.DELAY]: 1,
+            [Display.ID]: 'mem-used',
+        },
+        {
+            [Display.LABEL]: 'V-Mem',
+            [Sensor.HARDWARE]: 2,
+            [Sensor.SUB_HARDWARE]: null,
+            [Sensor.SENSOR]: 5,
+            [Sensor.DELAY]: 1,
+            [Display.ID]: 'v-mem-used',
+        },
+        {
+            [Display.LABEL]: 'Seagate',
+            [Sensor.HARDWARE]: 4,
+            [Sensor.SUB_HARDWARE]: null,
+            [Sensor.SENSOR]: 3,
+            [Sensor.DELAY]: 1,
+            [Display.ID]: 'seagate-load',
+        },
+        {
+            [Display.LABEL]: 'HGST',
+            [Sensor.HARDWARE]: 5,
+            [Sensor.SUB_HARDWARE]: null,
+            [Sensor.SENSOR]: 3,
+            [Sensor.DELAY]: 1,
+            [Display.ID]: 'hgst-load',
+        },
+    ];
+
     let charts = {};
-    let requested_sensors = [];
+    let meters = {};
 
     tryConnection();
 </script>

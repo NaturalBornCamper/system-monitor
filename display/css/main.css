@@ -9,18 +9,23 @@ body {
     /*background-image: url("../images/grid_white_inverted.gif");*/
     background-repeat: repeat;
 }
-.chart {
-    /*border: 1px solid black;*/
-    /*margin: 5px;*/
-    font-size: 0;
+
+.chart, .meter {
     position: relative;
     display: inline-block;
     box-sizing: border-box;
-    /*display: flex;*/
-    background-color: rgba(0,0,0,0.15);
+}
+
+.meter {
+    margin: 15px 40px 0 0;
 }
 
 .chart {
+    /*border: 1px solid black;*/
+    /*margin: 5px;*/
+    /*display: flex;*/
+    font-size: 0;
+    background-color: rgba(0,0,0,0.15);
 }
 
 .chart-histogram {
@@ -32,13 +37,16 @@ body {
 
 .chart-legend {
     background-color: rgba(0, 0, 0, 0.65);
+    position: absolute;
+    left: 0;
+    bottom: 0;
+}
+
+.chart-legend, .meter-label, .meter-value {
     font-family: "Courier New", sans-serif;
     font-weight: bold;
     font-size: 20px;
     color: white;
-    position: absolute;
-    left: 0;
-    bottom: 0;
     padding: 5px;
 }
 

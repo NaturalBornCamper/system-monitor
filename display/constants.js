@@ -27,11 +27,3 @@ class Display {
     static UNIT = 'unit';
 }
 
-// requested_sensors = {}
-// requested_sensors[Sensor.HARDWARE] = 4;
-// requested_sensors[Sensor.DELAY] = 0.5;
-//
-// const requested_sensor = {
-//     [Sensor.HARDWARE]: 4,
-//     Sensor.DELAY: 0.5,
-// }

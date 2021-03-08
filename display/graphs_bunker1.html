@@ -11,76 +11,7 @@
 </head>
 <body>
 <div id="charts"></div>
-<!--<div id="cpu-load" class="chart chart-histogram">-->
-<!--    <div class="graph-values"></div>-->
-<!--    <div class="chart-legend">-->
-<!--        <div class="legend-label"></div>-->
-<!--        <div class="legend-value"></div>-->
-<!--    </div>-->
-<!--</div>-->
-<!--<div id="cpu-temp" class="chart chart-histogram">-->
-<!--    <div class="graph-values"></div>-->
-<!--    <div class="chart-legend">-->
-<!--        <div class="legend-label"></div>-->
-<!--        <div class="legend-value"></div>-->
-<!--    </div>-->
-<!--</div>-->
-<!--<div id="gpu-load" class="chart chart-histogram">-->
-<!--    <div class="graph-values"></div>-->
-<!--    <div class="chart-legend">-->
-<!--        <div class="legend-label"></div>-->
-<!--        <div class="legend-value"></div>-->
-<!--    </div>-->
-<!--</div>-->
-<!--<div id="gpu-temp" class="chart chart-histogram">-->
-<!--    <div class="graph-values"></div>-->
-<!--    <div class="chart-legend">-->
-<!--        <div class="legend-label"></div>-->
-<!--        <div class="legend-value"></div>-->
-<!--    </div>-->
-<!--</div>-->
-<!--<div id="ssd-load" class="chart chart-histogram">-->
-<!--    <div class="graph-values"></div>-->
-<!--    <div class="chart-legend">-->
-<!--        <div class="legend-label"></div>-->
-<!--        <div class="legend-value"></div>-->
-<!--    </div>-->
-<!--</div>-->
-<!--<div id="ssd-temp" class="chart chart-histogram">-->
-<!--    <div class="graph-values"></div>-->
-<!--    <div class="chart-legend">-->
-<!--        <div class="legend-label"></div>-->
-<!--        <div class="legend-value"></div>-->
-<!--    </div>-->
-<!--</div>-->
-<!--<div id="sensor1-temp" class="chart chart-histogram">-->
-<!--    <div class="graph-values"></div>-->
-<!--    <div class="chart-legend">-->
-<!--        <div class="legend-label"></div>-->
-<!--        <div class="legend-value"></div>-->
-<!--    </div>-->
-<!--</div>-->
-<!--<div id="sensor2-temp" class="chart chart-histogram">-->
-<!--    <div class="graph-values"></div>-->
-<!--    <div class="chart-legend">-->
-<!--        <div class="legend-label"></div>-->
-<!--        <div class="legend-value"></div>-->
-<!--    </div>-->
-<!--</div>-->
-<!--<div id="download" class="chart chart-histogram">-->
-<!--    <div class="graph-values"></div>-->
-<!--    <div class="chart-legend">-->
-<!--        <div class="legend-label"></div>-->
-<!--        <div class="legend-value"></div>-->
-<!--    </div>-->
-<!--</div>-->
-<!--<div id="upload" class="chart chart-histogram">-->
-<!--    <div class="graph-values"></div>-->
-<!--    <div class="chart-legend">-->
-<!--        <div class="legend-label"></div>-->
-<!--        <div class="legend-value"></div>-->
-<!--    </div>-->
-<!--</div>-->
+<div id="meters"></div>
 
 <script>
     const SERVER_IP = '192.168.0.150';
@@ -90,7 +21,6 @@
     const CHART_WIDTH = 400;
     const CHART_HEIGHT = 85;
     const CHART_VALUE_COUNT = 20;
-    const CHART_VALUE_WIDTH = Math.floor(CHART_WIDTH / CHART_VALUE_COUNT);
     const CHART_BAR_OPACITY = '100%';
     const chartsSettings = [
         {
@@ -100,9 +30,6 @@
             [Sensor.SENSOR]: 8,
             [Sensor.DELAY]: 1,
             [Display.ID]: 'cpu-load',
-            [Display.WIDTH]: CHART_WIDTH,
-            [Display.HEIGHT]: CHART_HEIGHT,
-            [Display.VALUE_COUNT]: CHART_VALUE_COUNT,
             [Display.MIN_VALUE]: 0,
             [Display.MAX_VALUE]: 100,
         },
@@ -113,9 +40,6 @@
             [Sensor.SENSOR]: 17,
             [Sensor.DELAY]: 5,
             [Display.ID]: 'cpu-temp',
-            [Display.WIDTH]: CHART_WIDTH,
-            [Display.HEIGHT]: CHART_HEIGHT,
-            [Display.VALUE_COUNT]: CHART_VALUE_COUNT,
             [Display.MIN_VALUE]: 10,
             [Display.MAX_VALUE]: 80,
         },
@@ -126,9 +50,6 @@
             [Sensor.SENSOR]: 4,
             [Sensor.DELAY]: 1,
             [Display.ID]: 'gpu-load',
-            [Display.WIDTH]: CHART_WIDTH,
-            [Display.HEIGHT]: CHART_HEIGHT,
-            [Display.VALUE_COUNT]: CHART_VALUE_COUNT,
             [Display.MIN_VALUE]: 0,
             [Display.MAX_VALUE]: 100,
         },
@@ -139,9 +60,6 @@
             [Sensor.SENSOR]: 0,
             [Sensor.DELAY]: 5,
             [Display.ID]: 'gpu-temp',
-            [Display.WIDTH]: CHART_WIDTH,
-            [Display.HEIGHT]: CHART_HEIGHT,
-            [Display.VALUE_COUNT]: CHART_VALUE_COUNT,
             [Display.MIN_VALUE]: 10,
             [Display.MAX_VALUE]: 80,
         },
@@ -152,9 +70,6 @@
             [Sensor.SENSOR]: 10,
             [Sensor.DELAY]: 1,
             [Display.ID]: 'ssd-load',
-            [Display.WIDTH]: CHART_WIDTH,
-            [Display.HEIGHT]: CHART_HEIGHT,
-            [Display.VALUE_COUNT]: CHART_VALUE_COUNT,
             [Display.MIN_VALUE]: 0,
             [Display.MAX_VALUE]: 100,
         },
@@ -165,9 +80,6 @@
             [Sensor.SENSOR]: 0,
             [Sensor.DELAY]: 5,
             [Display.ID]: 'ssd-temp',
-            [Display.WIDTH]: CHART_WIDTH,
-            [Display.HEIGHT]: CHART_HEIGHT,
-            [Display.VALUE_COUNT]: CHART_VALUE_COUNT,
             [Display.MIN_VALUE]: 10,
             [Display.MAX_VALUE]: 80,
         },
@@ -178,9 +90,6 @@
             [Sensor.SENSOR]: 13,
             [Sensor.DELAY]: 5,
             [Display.ID]: 'sensor1-temp',
-            [Display.WIDTH]: CHART_WIDTH,
-            [Display.HEIGHT]: CHART_HEIGHT,
-            [Display.VALUE_COUNT]: CHART_VALUE_COUNT,
             [Display.MIN_VALUE]: 10,
             [Display.MAX_VALUE]: 80,
         },
@@ -191,9 +100,6 @@
             [Sensor.SENSOR]: 14,
             [Sensor.DELAY]: 5,
             [Display.ID]: 'sensor2-temp',
-            [Display.WIDTH]: CHART_WIDTH,
-            [Display.HEIGHT]: CHART_HEIGHT,
-            [Display.VALUE_COUNT]: CHART_VALUE_COUNT,
             [Display.MIN_VALUE]: 10,
             [Display.MAX_VALUE]: 80,
         },
@@ -204,9 +110,6 @@
             [Sensor.SENSOR]: 3,
             [Sensor.DELAY]: 1,
             [Display.ID]: 'download',
-            [Display.WIDTH]: CHART_WIDTH,
-            [Display.HEIGHT]: CHART_HEIGHT,
-            [Display.VALUE_COUNT]: CHART_VALUE_COUNT,
             [Display.MIN_VALUE]: 0,
             [Display.MAX_VALUE]: 13.35144048,
             [Display.MULTIPLIER]: 0.00000095367432,
@@ -219,17 +122,15 @@
             [Sensor.SENSOR]: 2,
             [Sensor.DELAY]: 1,
             [Display.ID]: 'upload',
-            [Display.WIDTH]: CHART_WIDTH,
-            [Display.HEIGHT]: CHART_HEIGHT,
-            [Display.VALUE_COUNT]: CHART_VALUE_COUNT,
             [Display.MIN_VALUE]: 0,
             [Display.MAX_VALUE]: 3.81469728,
             [Display.MULTIPLIER]: 0.00000095367432,
             [Display.UNIT]: "MB/s",
         },
-    ]
+    ];
+    const metersSettings = [];
     let charts = {};
-    let requested_sensors = [];
+    let meters = {};
 
     tryConnection();
 </script>

@@ -17,18 +17,18 @@ function tryConnection() {
     socket.addEventListener('error', function (event) {
         console.log('error');
         setTimeout(tryConnection, RETRY_DELAY);
-        // clearInterval(connection);
     });
 
     // Connection opened
     socket.addEventListener('open', function (event) {
         init(socket);
-        startGraphs();
+        let requested_sensors = startGraphs();
+        requested_sensors = requested_sensors.concat(startMeters());
 
-        // socket.send(JSON.stringify({
-        //     'action': 'set_sensors',
-        //     'requested_sensors': requested_sensors
-        // }));
+        socket.send(JSON.stringify({
+            'action': Actions.SET_SENSORS,
+            'requested_sensors': requested_sensors
+        }));
     });
 }
 
@@ -45,8 +45,12 @@ function init(socket) {
         data = JSON.parse(event.data);
 
         data.forEach(function (sensor_data, index) {
-            console.log(sensor_data)
-            charts[sensor_data[Display.ID]].pushValue(sensor_data);
+            // console.log(sensor_data)
+            if (charts.hasOwnProperty(sensor_data[Display.ID])){
+                charts[sensor_data[Display.ID]].pushValue(sensor_data);
+            } else if (meters.hasOwnProperty(sensor_data[Display.ID])) {
+                meters[sensor_data[Display.ID]].pushValue(sensor_data);
+            }
         });
     });
     socket.addEventListener('close', function (event) {

@@ -1,53 +1,21 @@
-class Chart {
-    constructor(options) {
-        this.values = [];
-        // this.id = options.id;
-        // this.width = options.width;
-        this.height = options.height;
-        this.valueCount = options.valueCount;
-        this.minValue = options.minValue;
-        this.maxValue = options.maxValue;
-        this.multiplier = (typeof options.multiplier !== 'undefined') ? options.multiplier : null;
-        this.unit = (typeof options.unit !== 'undefined') ? options.unit : null;
+/**
+ * TODO Add min bar height to chart so it,s not empty on "0" values
+ * TODO Add max decimals as option
+ * TODO SET METER VALUE COLOR (AND CHART) if min/max values set. If not -> white
+ */
 
-        // Create main graph node
-        this.element = document.createElement('DIV');
-        this.element.className = 'chart chart-histogram';
-        this.element.id = options.id;
-        this.element.style.height = `${options.height}px`;
-        this.element.style.width = `${options.width}px`;
-
-        // Create values container
-        this.elementValues = document.createElement('DIV');
-        this.elementValues.className = 'chart-values';
-        this.element.appendChild(this.elementValues);
-
-        // Create legend
-        this.legend = document.createElement('DIV');
-        this.legend.className = 'chart-legend';
-        let node = document.createElement('DIV');
-        node.classList = 'legend-label';
-        node.innerHTML = options.label;
-        this.legend.appendChild(node);
-        this.legendValue = document.createElement('DIV');
-        this.legendValue.classList = 'legend-value';
-        this.legend.appendChild(this.legendValue);
-        this.element.appendChild(this.legend);
-
-        let createdValue;
-        for (let i = 0; i < options.valueCount; ++i) {
-            createdValue = document.createElement('DIV');
-            createdValue.className = 'chart-value chart-histogram-bar';
-            createdValue.style.height = `0`;
-            // createdValue.style.height = `${this.getCalculatedHeight(i)}px`;
-            createdValue.style.width = `${CHART_VALUE_WIDTH}px`;
-            createdValue.style.marginBottom = `-${options.height}px`;
-            this.elementValues.appendChild(createdValue);
-        }
-
-        document.getElementById('charts').appendChild(this.element);
+Object.prototype.get = function (property, defaultValue) {
+    if (this.hasOwnProperty(property)) {
+        return this[property];
     }
+    if (typeof defaultValue !== 'undefined') {
+        return defaultValue;
+    }
+    return null;
+}
 
+
+class BaseUiElement {
     // getCalculatedHeight(value) {
     //     return Math.floor(value / this.maxValue * this.height);
     // }
@@ -64,6 +32,58 @@ class Chart {
     //         maximumFractionDigits: 4
     //     });
     // }
+}
+
+
+class Chart extends BaseUiElement {
+    constructor(options) {
+        super()
+        this.values = [];
+        this.height = options.get(Display.HEIGHT, CHART_HEIGHT);
+        this.valueCount = options.get(Display.VALUE_COUNT, CHART_VALUE_COUNT);
+        this.minValue = options.get(Display.MIN_VALUE);
+        this.maxValue = options.get(Display.MAX_VALUE);
+        this.multiplier = options.get(Display.MULTIPLIER);
+        this.unit = options.get(Display.UNIT);
+
+        // Create main graph node
+        this.element = document.createElement('DIV');
+        this.element.className = 'chart chart-histogram';
+        this.element.id = options.get(Display.ID);
+        this.element.style.height = `${this.height}px`;
+        this.element.style.width = `${options.get(Display.WIDTH, CHART_WIDTH)}px`;
+
+        // Create values container
+        this.elementValues = document.createElement('DIV');
+        this.elementValues.className = 'chart-values';
+        this.element.appendChild(this.elementValues);
+
+        // Create legend
+        this.legend = document.createElement('DIV');
+        this.legend.className = 'chart-legend';
+        let node = document.createElement('DIV');
+        node.classList = 'legend-label';
+        node.innerHTML = options.get(Display.LABEL);
+        this.legend.appendChild(node);
+        this.legendValue = document.createElement('DIV');
+        this.legendValue.classList = 'legend-value';
+        this.legend.appendChild(this.legendValue);
+        this.element.appendChild(this.legend);
+
+        let createdValue;
+        let chart_value_width = Math.floor(options.get(Display.WIDTH, CHART_WIDTH) / this.valueCount);
+        for (let i = 0; i < this.valueCount; ++i) {
+            createdValue = document.createElement('DIV');
+            createdValue.className = 'chart-value chart-histogram-bar';
+            createdValue.style.height = `0`;
+            // createdValue.style.height = `${this.getCalculatedHeight(i)}px`;
+            createdValue.style.width = `${chart_value_width}px`;
+            createdValue.style.marginBottom = `-${this.height}px`;
+            this.elementValues.appendChild(createdValue);
+        }
+
+        document.getElementById('charts').appendChild(this.element);
+    }
 
     pushValue(sensorData) {
         let value = this.multiplier ? this.multiplier * sensorData[Sensor.VALUE] : sensorData[Sensor.VALUE];
@@ -97,21 +117,51 @@ class Chart {
 }
 
 
+class Meter extends BaseUiElement {
+    constructor(options) {
+        super()
+        this.multiplier = options.get(Display.MULTIPLIER);
+        this.unit = options.get(Display.UNIT);
+
+        // Create main meter node
+        this.element = document.createElement('DIV');
+        this.element.className = 'meter';
+        this.element.id = options.get(Display.ID);
+
+        // Create labeyl and value
+        let node = document.createElement('SPAN');
+        node.classList = 'meter-label';
+        node.innerHTML = `${options.get(Display.LABEL)}:`;
+        this.element.appendChild(node);
+        this.meterValue = document.createElement('SPAN');
+        this.meterValue.classList = 'meter-value';
+        this.element.appendChild(this.meterValue);
+
+        document.getElementById('meters').appendChild(this.element);
+    }
+
+    // Calculates green to red color with a value from 0 to 1
+    getColor(value) {
+        let hue = ((1 - value) * 120).toString(10);
+        return `hsl(${hue}, 100%, 50%)`;
+    }
+
+    pushValue(sensorData) {
+        let value = this.multiplier ? this.multiplier * sensorData[Sensor.VALUE] : sensorData[Sensor.VALUE];
+        this.meterValue.innerHTML = `${value.toFixed(MAX_DECIMALS)} ${this.unit || sensorData[Sensor.UNIT]}`;
+
+        // NOT SET YET
+        // let ratio = value / this.maxValue;
+        // this.meterValue.style.color = this.getColor(ratio);
+    }
+}
+
+
 function startGraphs() {
+    let requested_sensors = [];
+
     chartsSettings.forEach(function (chartSettings, index) {
-        let date = new Date();
-        // let identifier = `${date.getTime()}${date.getMilliseconds()}`;
-        charts[chartSettings[Display.ID]] = new Chart({
-            id: chartSettings[Display.ID],
-            label: chartSettings[Display.LABEL],
-            width: chartSettings[Display.WIDTH],
-            height: chartSettings[Display.HEIGHT],
-            valueCount: chartSettings[Display.VALUE_COUNT],
-            minValue: chartSettings[Display.MIN_VALUE],
-            maxValue: chartSettings[Display.MAX_VALUE],
-            multiplier: chartSettings.hasOwnProperty(Display.MULTIPLIER) ? chartSettings[Display.MULTIPLIER] : null,
-            unit: chartSettings.hasOwnProperty(Display.UNIT) ? chartSettings[Display.UNIT] : null,
-        });
+        charts[chartSettings[Display.ID]] = new Chart(chartSettings);
 
         requested_sensors.push({
             [Display.ID]: chartSettings[Display.ID],
@@ -121,11 +171,28 @@ function startGraphs() {
             [Sensor.SENSOR]: chartSettings[Sensor.SENSOR],
             [Sensor.DELAY]: chartSettings[Sensor.DELAY]
         });
-        console.log(requested_sensors);
-
-        socket.send(JSON.stringify({
-            'action': Actions.SET_SENSORS,
-            'requested_sensors': requested_sensors
-        }));
     });
+
+    console.log(requested_sensors);
+    return requested_sensors;
+}
+
+function startMeters() {
+    let requested_sensors = [];
+
+    metersSettings.forEach(function (meterSettings, index) {
+        meters[meterSettings[Display.ID]] = new Meter(meterSettings);
+
+        requested_sensors.push({
+            [Display.ID]: meterSettings[Display.ID],
+            [Display.LABEL]: meterSettings[Display.LABEL],
+            [Sensor.HARDWARE]: meterSettings[Sensor.HARDWARE],
+            [Sensor.SUB_HARDWARE]: meterSettings[Sensor.SUB_HARDWARE],
+            [Sensor.SENSOR]: meterSettings[Sensor.SENSOR],
+            [Sensor.DELAY]: meterSettings[Sensor.DELAY]
+        });
+    });
+
+    console.log(requested_sensors);
+    return requested_sensors;
 }
