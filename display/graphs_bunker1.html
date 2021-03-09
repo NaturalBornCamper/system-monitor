@@ -20,7 +20,7 @@
     const SERVER_PORT = 2346;
     const CHART_WIDTH = 400;
     const CHART_HEIGHT = 85;
-    const CHART_VALUE_COUNT = 20;
+    const CHART_VALUE_COUNT = 40;
     const CHART_BAR_OPACITY = '100%';
     const chartsSettings = [
         {
@@ -128,7 +128,64 @@
             [Display.UNIT]: "MB/s",
         },
     ];
-    const metersSettings = [];
+    const metersSettings = [
+        {
+            [Display.LABEL]: 'MEM',
+            [Sensor.HARDWARE]: 2,
+            [Sensor.SUB_HARDWARE]: null,
+            [Sensor.SENSOR]: 2,
+            [Sensor.DELAY]: 1,
+            [Display.ID]: 'mem-used',
+        },
+        {
+            [Display.LABEL]: 'V-MEM',
+            [Sensor.HARDWARE]: 2,
+            [Sensor.SUB_HARDWARE]: null,
+            [Sensor.SENSOR]: 5,
+            [Sensor.DELAY]: 1,
+            [Display.ID]: 'v-mem-used',
+        },
+        {
+            [Display.LABEL]: 'SEAGATE',
+            [Sensor.HARDWARE]: 4,
+            [Sensor.SUB_HARDWARE]: null,
+            [Sensor.SENSOR]: 3,
+            [Sensor.DELAY]: 1,
+            [Display.ID]: 'seagate-load',
+        },
+        {
+            [Display.LABEL]: 'WD',
+            [Sensor.HARDWARE]: 5,
+            [Sensor.SUB_HARDWARE]: null,
+            [Sensor.SENSOR]: 3,
+            [Sensor.DELAY]: 1,
+            [Display.ID]: 'wd-load',
+        },
+        {
+            [Display.LABEL]: '3FANS',
+            [Sensor.HARDWARE]: 0,
+            [Sensor.SUB_HARDWARE]: null,
+            [Sensor.SENSOR]: 23,
+            [Sensor.DELAY]: 1,
+            [Display.ID]: 'triple-fans',
+        },
+        {
+            [Display.LABEL]: 'CHIPSET',
+            [Sensor.HARDWARE]: 0,
+            [Sensor.SUB_HARDWARE]: null,
+            [Sensor.SENSOR]: 22,
+            [Sensor.DELAY]: 1,
+            [Display.ID]: 'chipset-fan',
+        },
+        {
+            [Display.LABEL]: 'PUMP',
+            [Sensor.HARDWARE]: 0,
+            [Sensor.SUB_HARDWARE]: 1,
+            [Sensor.SENSOR]: 15,
+            [Sensor.DELAY]: 1,
+            [Display.ID]: 'pump',
+        },
+    ];
     let charts = {};
     let meters = {};
 
