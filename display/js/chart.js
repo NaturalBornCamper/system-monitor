@@ -1,7 +1,10 @@
 /**
- * TODO Add min bar height to chart so it,s not empty on "0" values
- * TODO Add max decimals as option
+ * TODO SSD Load reaches 100% sometimes <- Not sure if I meant to adjust the max value or if it's a bug (Could have been a bug, fixed with latest dlls, check)
+ *
+ * TODO Add min bar height to chart so it,s not empty on "0" values? Not sure, might be ok like this
+ * TODO Add max decimals as option, then add decimal on internet, to have 0.01 MB/s instead of 0.0 MB/s
  * TODO SET METER VALUE COLOR (AND CHART) if min/max values set. If not -> white
+ * TODO Place label on the top-left instead of bottom-left?
  */
 
 Object.prototype.get = function (property, defaultValue) {
@@ -161,7 +164,9 @@ function startGraphs() {
     let requested_sensors = [];
 
     chartsSettings.forEach(function (chartSettings, index) {
-        charts[chartSettings[Display.ID]] = new Chart(chartSettings);
+        // Checks if chart already exists, not sure if it should be cleared when it exists (computer restarts)
+        if (!charts[chartSettings[Display.ID]])
+            charts[chartSettings[Display.ID]] = new Chart(chartSettings);
 
         requested_sensors.push({
             [Display.ID]: chartSettings[Display.ID],
@@ -181,7 +186,9 @@ function startMeters() {
     let requested_sensors = [];
 
     metersSettings.forEach(function (meterSettings, index) {
-        meters[meterSettings[Display.ID]] = new Meter(meterSettings);
+        // Checks if meter already exists, not sure if it should be cleared when it exists (computer restarts)
+        if (!meters[meterSettings[Display.ID]])
+            meters[meterSettings[Display.ID]] = new Meter(meterSettings);
 
         requested_sensors.push({
             [Display.ID]: meterSettings[Display.ID],

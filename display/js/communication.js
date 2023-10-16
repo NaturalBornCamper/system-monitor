@@ -5,7 +5,7 @@ let socket;
 // connection = setInterval(tryConnection, 500);
 
 function tryConnection() {
-    console.log("tryConnection")
+    console.log(`Trying to connect to hardware monitor server ${SERVER_IP}:${SERVER_PORT}`)
 
     // Create WebSocket connection.
     //const socket = new WebSocket('ws://127.0.0.1:2346');
@@ -15,7 +15,7 @@ function tryConnection() {
     socket = new WebSocket(`ws://${SERVER_IP}:${SERVER_PORT}`);
 
     socket.addEventListener('error', function (event) {
-        console.log('error');
+        console.log('Error connecting to server, probably because it\'s offline or the script is not running, retrying later');
         setTimeout(tryConnection, RETRY_DELAY);
     });
 
@@ -46,7 +46,8 @@ function init(socket) {
 
         data.forEach(function (sensor_data, index) {
             // console.log(sensor_data)
-            if (charts.hasOwnProperty(sensor_data[Display.ID])){
+
+            if (charts.hasOwnProperty(sensor_data[Display.ID])) {
                 charts[sensor_data[Display.ID]].pushValue(sensor_data);
             } else if (meters.hasOwnProperty(sensor_data[Display.ID])) {
                 meters[sensor_data[Display.ID]].pushValue(sensor_data);

@@ -61,42 +61,42 @@ class HardwareMonitor:
         hardware_id = sensor[Sensor.HARDWARE]
         sub_hardware_id = sensor[Sensor.SUB_HARDWARE]
         delay = sensor[Sensor.DELAY]
-        cprint(COLORS.RED, f"Checking if hardware ({hardware_id},{sub_hardware_id}) needs update")
+        # cprint(COLORS.RED, f"Checking if hardware ({hardware_id},{sub_hardware_id}) needs update")
         if (hardware_id, sub_hardware_id) in self.update_times:
-            cprint(COLORS.GREEN, "Time since last update:",
-                   time.time() - self.update_times[(hardware_id, sub_hardware_id)])
-            cprint(COLORS.GREEN, "Time since last update (with threshold):",
-                   time.time() - self.update_times[(hardware_id, sub_hardware_id)] + UPDATE_THRESHOLD)
-            cprint(COLORS.BRIGHT_GREEN, "Delay accepted:", delay)
+            # cprint(COLORS.GREEN, "Time since last update:",
+            #        time.time() - self.update_times[(hardware_id, sub_hardware_id)])
+            # cprint(COLORS.GREEN, "Time since last update (with threshold):",
+            #        time.time() - self.update_times[(hardware_id, sub_hardware_id)] + UPDATE_THRESHOLD)
+            # cprint(COLORS.BRIGHT_GREEN, "Delay accepted:", delay)
             if time.time() - self.update_times[(hardware_id, sub_hardware_id)] + UPDATE_THRESHOLD >= delay:
-                cprint(COLORS.RED, f"HARDWARE ({hardware_id},{sub_hardware_id}) NEEDS UPDATE")
+                # cprint(COLORS.RED, f"HARDWARE ({hardware_id},{sub_hardware_id}) NEEDS UPDATE")
                 await self.create_update_callback(server, websocket, sensor)
             else:
-                cprint(COLORS.RED, f"SKIPPING UPDATE FOR ({hardware_id},{sub_hardware_id})")
+                # cprint(COLORS.RED, f"SKIPPING UPDATE FOR ({hardware_id},{sub_hardware_id})")
                 server.callback(websocket=websocket, sensor=sensor)
         else:
-            cprint(COLORS.RED, f"HARDWARE ({hardware_id},{sub_hardware_id}) FIRST UPDATE")
+            # cprint(COLORS.RED, f"HARDWARE ({hardware_id},{sub_hardware_id}) FIRST UPDATE")
             await self.create_update_callback(server, websocket, sensor)
 
     async def create_update_callback(self, server: 'Server', websocket: WebSocketClientProtocol,
                                      sensor: List[Union[int, str]]) -> None:
         hardware_id = sensor[Sensor.HARDWARE]
         sub_hardware_id = sensor[Sensor.SUB_HARDWARE]
-        print("create_update_task:", hardware_id, time.time())
+        # print("create_update_task:", hardware_id, time.time())
         tuple = (hardware_id, sub_hardware_id)
         if tuple in self.futures and self.futures[tuple].running():
-            print(f"Future ({tuple[0]}, {tuple[1]}) EXISTS!! Waiting for result from other request: ", hardware_id)
+            # print(f"Future ({tuple[0]}, {tuple[1]}) EXISTS!! Waiting for result from other request: ", hardware_id)
             while self.futures[tuple].running():
                 await asyncio.sleep(0.1)
                 server.callback(websocket=websocket, sensor=sensor)
-            print(f"other request finished: ({hardware_id},{sub_hardware_id})")
+            # print(f"other request finished: ({hardware_id},{sub_hardware_id})")
         else:
-            cprint(COLORS.MAGENTA, f"Future ({tuple[0]}, {tuple[1]}) doesn't exist")
+            # cprint(COLORS.MAGENTA, f"Future ({tuple[0]}, {tuple[1]}) doesn't exist")
             self.futures[tuple] = self.executor.submit(self.updater_thread, websocket=websocket, sensor=sensor)
             self.futures[tuple].add_done_callback(server.callback)
-            cprint(COLORS.MAGENTA, f"submit and created future ({tuple[0]}, {tuple[1]})")
+            # cprint(COLORS.MAGENTA, f"submit and created future ({tuple[0]}, {tuple[1]})")
 
-            cprint(COLORS.YELLOW, f"got update from other future: ({hardware_id},{sub_hardware_id})")
+            # cprint(COLORS.YELLOW, f"got update from other future: ({hardware_id},{sub_hardware_id})")
 
     # Note: Return type hint is a bit useless here as it will be placed in the "future" object, never
     # called directly. Left it there for reference
@@ -111,13 +111,13 @@ class HardwareMonitor:
             time.sleep(5)
             cprint(COLORS.BLUE, "hardware_id 99 finished stalling")
         else:
-            cprint(COLORS.CYAN, f"update_thread: ({hardware_id},{sub_hardware_id})")
+            # cprint(COLORS.CYAN, f"update_thread: ({hardware_id},{sub_hardware_id})")
             if sub_hardware_id:
                 self.handle.Hardware[hardware_id].SubHardware[sub_hardware_id].Update()
             else:
                 self.handle.Hardware[hardware_id].Update()
         self.update_times[(hardware_id, sub_hardware_id)] = time.time()
-        cprint(COLORS.YELLOW, f"updated: ({hardware_id},{sub_hardware_id}), took {time.time() - begin} seconds")
+        # cprint(COLORS.YELLOW, f"updated: ({hardware_id},{sub_hardware_id}), took {time.time() - begin} seconds")
         return {
             "websocket": websocket,
             "sensor": sensor,
@@ -127,7 +127,8 @@ class HardwareMonitor:
         hardware_id = requested_sensor[Sensor.HARDWARE]
         sub_hardware_id = requested_sensor[Sensor.SUB_HARDWARE]
         sensor_id = requested_sensor[Sensor.SENSOR]
-        if sub_hardware_id:
+
+        if sub_hardware_id is not None:
             sensor = self.handle.Hardware[hardware_id].SubHardware[sub_hardware_id].Sensors[sensor_id]
         else:
             sensor = self.handle.Hardware[hardware_id].Sensors[sensor_id]
@@ -147,17 +148,19 @@ class HardwareMonitor:
         # }
 
     def fetch_stats(self) -> None:
+        # print(self.handle.Hardware[0].Sensors[23].Value)
+        # print(self.handle.Hardware[0].SubHardware[0].Sensors[23])
+        # print(self.handle.Hardware[0].Sensors[23])
         for h, hardware in enumerate(self.handle.Hardware):
             hardware.Update()
-            cprint(COLORS.BRIGHT_BLUE, "HARDWARE TYPE: {}, NAME: {} ({}, {})".format(
+            cprint(COLORS.BRIGHT_BLUE, "HARDWARE TYPE: {}, NAME: {}, SUB HARDWARE COUNT: {}, SENSOR LIST ({}):".format(
                 HARDWARE_TYPES[hardware.HardwareType],
                 hardware.Name,
-                f"{len(hardware.Sensors)} sensor(s)",
-                f"{len(hardware.SubHardware)} sub hardware(s)"
+                f"{len(hardware.SubHardware)}",
+                f"{len(hardware.Sensors)}"
             ))
 
             if len(hardware.Sensors):
-                cprint(COLORS.BRIGHT_MAGENTA, "Sensors:")
                 for s, sensor in enumerate(hardware.Sensors):
                     self.parse_sensor(sensor, hardware_index=h, sensor_index=s)
 
@@ -165,10 +168,8 @@ class HardwareMonitor:
                 cprint(COLORS.RED, "SubHardware:")
                 for sh, sub_hardware in enumerate(hardware.SubHardware):
                     sub_hardware.Update()
-                    cprint(COLORS.BRIGHT_MAGENTA, "Sensors:")
                     for s, sensor in enumerate(sub_hardware.Sensors):
                         self.parse_sensor(sensor, hardware_index=h, sub_hardware_index=sh, sensor_index=s)
-            print("")
 
     def parse_sensor(self, sensor, hardware_index: int, sub_hardware_index: int = None, sensor_index: int = None) \
             -> None:
@@ -181,7 +182,7 @@ class HardwareMonitor:
                     sensor.Value,
                     SENSOR_TYPES[sensor.SensorType].unit,
                     hardware_index,
-                    sub_hardware_index if sub_hardware_index else "null",
+                    sub_hardware_index if sub_hardware_index is not None else "null",
                     sensor_index,
                 )
             )

@@ -107,15 +107,16 @@ class Server:
     async def periodic(self, websocket: WebSocketClientProtocol, sensor: List[Union[int, str]]) -> None:
         while True:
             await self.monitor.update_if_needed(self, websocket, sensor=sensor)
-            print('periodic sensor', sensor[Sensor.HARDWARE], sensor[Sensor.SUB_HARDWARE], sensor[Sensor.SENSOR])
-            pprint(self.clients[websocket].hardware_tasks)
+            # print('periodic sensor', sensor[Sensor.HARDWARE], sensor[Sensor.SUB_HARDWARE], sensor[Sensor.SENSOR])
+            # pprint(self.clients[websocket].hardware_tasks)
             await asyncio.sleep(sensor[Sensor.DELAY])
 
     async def serve_new_client(self, websocket: WebSocketClientProtocol, path: str) -> None:
-        print("New client connected: ", websocket)
+        print(f"New client connected {websocket.remote_address}: ", websocket)
         self.clients[websocket] = Client()
         self.clients[websocket].broadcast_task = asyncio.create_task(self.broadcast(websocket))
 
+        # TODO Bug: Exception on line 120 when computer resuming from hibernation (Because client disappeared maybe)
         async for message in websocket:
             print('-------------------------MESSAGE RECEIVED----------------------------')
             data = json.loads(message)
@@ -131,7 +132,7 @@ class Server:
 
     def callback(self, future: Future = None, websocket: WebSocketClientProtocol = None, sensor: List = None) -> None:
         if future:
-            cprint(COLORS.BRIGHT_YELLOW, "Future running?", future.running())
+            # cprint(COLORS.BRIGHT_YELLOW, "Future running?", future.running())
             websocket = future.result()['websocket']
             sensor = future.result()['sensor']
 
@@ -139,4 +140,4 @@ class Server:
         if websocket in self.clients:
             self.clients[websocket].sensor_data.append(self.monitor.get_sensor_value(requested_sensor=sensor))
 
-        cprint(COLORS.RED, "thread finished")
+        # cprint(COLORS.RED, "thread finished")

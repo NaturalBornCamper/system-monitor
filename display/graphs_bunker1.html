@@ -14,7 +14,7 @@
 <div id="meters"></div>
 
 <script>
-    const SERVER_IP = '192.168.0.150';
+    const SERVER_IP = '192.168.0.50';
     // const SERVER_IP = '127.0.0.1';
     // const SERVER_IP = 'localhost';
     const SERVER_PORT = 2346;
@@ -27,7 +27,7 @@
             [Display.LABEL]: 'CPU Load',
             [Sensor.HARDWARE]: 1,
             [Sensor.SUB_HARDWARE]: null,
-            [Sensor.SENSOR]: 8,
+            [Sensor.SENSOR]: 16,
             [Sensor.DELAY]: 1,
             [Display.ID]: 'cpu-load',
             [Display.MIN_VALUE]: 0,
@@ -37,7 +37,7 @@
             [Display.LABEL]: 'CPU Temp',
             [Sensor.HARDWARE]: 1,
             [Sensor.SUB_HARDWARE]: null,
-            [Sensor.SENSOR]: 17,
+            [Sensor.SENSOR]: 25,
             [Sensor.DELAY]: 5,
             [Display.ID]: 'cpu-temp',
             [Display.MIN_VALUE]: 10,
@@ -47,7 +47,7 @@
             [Display.LABEL]: 'GPU Load',
             [Sensor.HARDWARE]: 3,
             [Sensor.SUB_HARDWARE]: null,
-            [Sensor.SENSOR]: 4,
+            [Sensor.SENSOR]: 5,
             [Sensor.DELAY]: 1,
             [Display.ID]: 'gpu-load',
             [Display.MIN_VALUE]: 0,
@@ -60,6 +60,16 @@
             [Sensor.SENSOR]: 0,
             [Sensor.DELAY]: 5,
             [Display.ID]: 'gpu-temp',
+            [Display.MIN_VALUE]: 10,
+            [Display.MAX_VALUE]: 80,
+        },
+        {
+            [Display.LABEL]: 'GPU Hot Spot',
+            [Sensor.HARDWARE]: 3,
+            [Sensor.SUB_HARDWARE]: null,
+            [Sensor.SENSOR]: 30,
+            [Sensor.DELAY]: 5,
+            [Display.ID]: 'gpu-hot-spot',
             [Display.MIN_VALUE]: 10,
             [Display.MAX_VALUE]: 80,
         },
@@ -84,7 +94,7 @@
             [Display.MAX_VALUE]: 80,
         },
         {
-            [Display.LABEL]: 'Sensor 1 Temp',
+            [Display.LABEL]: 'Top Temp',
             [Sensor.HARDWARE]: 0,
             [Sensor.SUB_HARDWARE]: 1,
             [Sensor.SENSOR]: 13,
@@ -94,7 +104,7 @@
             [Display.MAX_VALUE]: 80,
         },
         {
-            [Display.LABEL]: 'Sensor 2 Temp',
+            [Display.LABEL]: 'Bottom Temp',
             [Sensor.HARDWARE]: 0,
             [Sensor.SUB_HARDWARE]: 1,
             [Sensor.SENSOR]: 14,
@@ -111,8 +121,8 @@
             [Sensor.DELAY]: 1,
             [Display.ID]: 'download',
             [Display.MIN_VALUE]: 0,
-            [Display.MAX_VALUE]: 13.35144048,
-            [Display.MULTIPLIER]: 0.00000095367432,
+            [Display.MAX_VALUE]: 17.5, // MB/s
+            [Display.MULTIPLIER]: 0.000001,
             [Display.UNIT]: "MB/s",
         },
         {
@@ -123,8 +133,8 @@
             [Sensor.DELAY]: 1,
             [Display.ID]: 'upload',
             [Display.MIN_VALUE]: 0,
-            [Display.MAX_VALUE]: 3.81469728,
-            [Display.MULTIPLIER]: 0.00000095367432,
+            [Display.MAX_VALUE]: 3.8, // MB/s
+            [Display.MULTIPLIER]: 0.000001,
             [Display.UNIT]: "MB/s",
         },
     ];
@@ -164,7 +174,7 @@
         {
             [Display.LABEL]: '3FANS',
             [Sensor.HARDWARE]: 0,
-            [Sensor.SUB_HARDWARE]: null,
+            [Sensor.SUB_HARDWARE]: 0,
             [Sensor.SENSOR]: 23,
             [Sensor.DELAY]: 1,
             [Display.ID]: 'triple-fans',
@@ -172,7 +182,7 @@
         {
             [Display.LABEL]: 'CHIPSET',
             [Sensor.HARDWARE]: 0,
-            [Sensor.SUB_HARDWARE]: null,
+            [Sensor.SUB_HARDWARE]: 0,
             [Sensor.SENSOR]: 22,
             [Sensor.DELAY]: 1,
             [Display.ID]: 'chipset-fan',
