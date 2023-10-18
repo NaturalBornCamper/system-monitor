@@ -27,10 +27,10 @@ Then add at the end:
 ###Set resolution on RPi by editing `/boot/config.txt`:
 ```
 max_usb_current=1
-hdmi_group=2
-hdmi_mode=87
-hdmi_cvt 800 480 60 6 0 0 0
-hdmi_drive=1
+hdmi_group=2 (means computer screen group (not TV))
+hdmi_mode=87 (means custom mode)
+hdmi_cvt 800 480 60 6 0 0 0 (Sets custom resolution for mode 87)
+hdmi_drive=1 (Transmit video over HDMI, but not audio. With sound: 2)
 ```
 In case more info needed, this specific example is for 800x380
 https://learn.adafruit.com/adafruit-5-800x480-tft-hdmi-monitor-touchscreen-backpack/raspberry-pi-config
