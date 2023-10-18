@@ -100,8 +100,8 @@ class Chart extends BaseUiElement {
         let x = this.valueCount - 1;
 
         for (let i = this.values.length - 1; i >= 0; --i) {
-            let ratio = this.values[i] / this.maxValue;
-            this.elementValues.children[x].style.height = `${ratio * this.height}px`;
+            let ratio = Math.min(1.0, Math.max(this.values[i] / this.maxValue, 0.0));
+            this.elementValues.children[x].style.height = `${Math.max(0.05, ratio) * this.height}px`;
             this.elementValues.children[x].style.backgroundColor = this.getColor(ratio);
             --x;
         }
