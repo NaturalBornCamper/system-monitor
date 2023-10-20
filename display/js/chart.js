@@ -1,10 +1,8 @@
 /**
  * TODO SSD Load reaches 100% sometimes <- Not sure if I meant to adjust the max value or if it's a bug (Could have been a bug, fixed with latest dlls, check)
  *
- * TODO Add min bar height to chart so it,s not empty on "0" values? Not sure, might be ok like this
  * TODO Add max decimals as option, then add decimal on internet, to have 0.01 MB/s instead of 0.0 MB/s
  * TODO SET METER VALUE COLOR (AND CHART) if min/max values set. If not -> white
- * TODO Place label on the top-left instead of bottom-left?
  */
 
 Object.prototype.get = function (property, defaultValue) {
