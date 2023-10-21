@@ -23,6 +23,7 @@ function tryConnection() {
     socket.addEventListener('open', function (event) {
         init(socket);
         let requested_sensors = startGraphs();
+        requested_sensors = requested_sensors.concat(startFans());
         requested_sensors = requested_sensors.concat(startMeters());
 
         socket.send(JSON.stringify({
@@ -49,6 +50,8 @@ function init(socket) {
 
             if (charts.hasOwnProperty(sensor_data[Display.ID])) {
                 charts[sensor_data[Display.ID]].pushValue(sensor_data);
+            } else if (fans.hasOwnProperty(sensor_data[Display.ID])) {
+                fans[sensor_data[Display.ID]].pushValue(sensor_data);
             } else if (meters.hasOwnProperty(sensor_data[Display.ID])) {
                 meters[sensor_data[Display.ID]].pushValue(sensor_data);
             }

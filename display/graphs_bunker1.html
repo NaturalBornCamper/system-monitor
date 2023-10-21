@@ -12,7 +12,8 @@
 </head>
 <body>
 <div id="charts"></div>
-<div id="meters"></div>
+<div id="fans" style="width:400px"></div>
+<div id="meters" style="width:400px"></div>
 
 <script>
     const SERVER_IP = '192.168.0.50';
@@ -22,7 +23,23 @@
     const CHART_WIDTH = 400;
     const CHART_HEIGHT = 80;
     const CHART_VALUE_COUNT = 40;
-    const CHART_BAR_OPACITY = '100%';
+    const CHART_BAR_OPACITY = '60%';
+    const DEFAULT_MIN_VALUE = 0.0;
+    const DEFAULT_MAX_VALUE = 100.0;
+    const FAN_MAX_ANIMATION_DURATION = 1.0;
+    const FAN_MIN_ANIMATION_DURATION = 0.3;
+
+    /*
+    From LibreHardwareMonitor window:
+    Motherboard Hardware 0
+     Fan #2 SSD Fan, 0-7100 RPM
+     Fan #4 GPU fan, 1100-2780 RPM
+     Fan #5 Radiator triple fans, 835-1829 RPM
+    Motherboard Hardware 1
+     Fan #1 Pump, 1800-4800 RPM
+     Temp #1 Before Radiator
+     Temp #2 After Radiator
+     */
     const chartsSettings = [
         {
             [Display.LABEL]: 'CPU Load',
@@ -35,7 +52,7 @@
             [Display.MAX_VALUE]: 100,
         },
         {
-            [Display.LABEL]: 'CPU Temp',
+            [Display.LABEL]: 'CPU Core',
             [Sensor.HARDWARE]: 1,
             [Sensor.SUB_HARDWARE]: null,
             [Sensor.SENSOR]: 25,
@@ -55,12 +72,26 @@
             [Display.MAX_VALUE]: 100,
         },
         {
-            [Display.LABEL]: 'GPU Temp',
+            [Display.LABEL]: 'GPU Core',
             [Sensor.HARDWARE]: 3,
             [Sensor.SUB_HARDWARE]: null,
             [Sensor.SENSOR]: 0,
             [Sensor.DELAY]: 5,
-            [Display.ID]: 'gpu-temp',
+            [Display.ID]: 'gpu-core-temp',
+            [Display.WIDTH]: 200,
+            [Display.VALUE_COUNT]: 20,
+            [Display.MIN_VALUE]: 10,
+            [Display.MAX_VALUE]: 80,
+        },
+        {
+            [Display.LABEL]: 'GPU Memory',
+            [Sensor.HARDWARE]: 3,
+            [Sensor.SUB_HARDWARE]: null,
+            [Sensor.SENSOR]: 31,
+            [Sensor.DELAY]: 5,
+            [Display.ID]: 'gpu-hot-spot',
+            [Display.WIDTH]: 200,
+            [Display.VALUE_COUNT]: 20,
             [Display.MIN_VALUE]: 10,
             [Display.MAX_VALUE]: 80,
         },
@@ -85,20 +116,20 @@
             [Display.MAX_VALUE]: 80,
         },
         {
-            [Display.LABEL]: 'Top Temp',
+            [Display.LABEL]: 'Loop Temp',
             [Sensor.HARDWARE]: 0,
-            [Sensor.SUB_HARDWARE]: 1,
-            [Sensor.SENSOR]: 13,
+            [Sensor.SUB_HARDWARE]: 0,
+            [Sensor.SENSOR]: 18,
             [Sensor.DELAY]: 5,
             [Display.ID]: 'sensor1-temp',
             [Display.MIN_VALUE]: 10,
             [Display.MAX_VALUE]: 80,
         },
         {
-            [Display.LABEL]: 'Bottom Temp',
+            [Display.LABEL]: 'Reservoir Temp',
             [Sensor.HARDWARE]: 0,
             [Sensor.SUB_HARDWARE]: 1,
-            [Sensor.SENSOR]: 14,
+            [Sensor.SENSOR]: 13,
             [Sensor.DELAY]: 5,
             [Display.ID]: 'sensor2-temp',
             [Display.MIN_VALUE]: 10,
@@ -128,15 +159,27 @@
             [Display.MULTIPLIER]: 0.000001,
             [Display.UNIT]: "MB/s",
         },
+    ];
+    const fansSettings = [
         {
-            [Display.LABEL]: 'GPU Hot Spot',
-            [Sensor.HARDWARE]: 3,
-            [Sensor.SUB_HARDWARE]: null,
-            [Sensor.SENSOR]: 30,
+            [Display.LABEL]: 'RADIATOR',
+            [Sensor.HARDWARE]: 0,
+            [Sensor.SUB_HARDWARE]: 0,
+            [Sensor.SENSOR]: 23,
             [Sensor.DELAY]: 5,
-            [Display.ID]: 'gpu-hot-spot',
-            [Display.MIN_VALUE]: 10,
-            [Display.MAX_VALUE]: 80,
+            [Display.ID]: 'triple-fans',
+            [Display.MIN_VALUE]: 670, // Test min and max with Gigabyte software
+            [Display.MAX_VALUE]: 1850, // Test min and max with Gigabyte software
+        },
+        {
+            [Display.LABEL]: 'PUMP',
+            [Sensor.HARDWARE]: 0,
+            [Sensor.SUB_HARDWARE]: 1,
+            [Sensor.SENSOR]: 15,
+            [Sensor.DELAY]: 5,
+            [Display.ID]: 'pump',
+            [Display.MIN_VALUE]: 800, // Test min and max with Gigabyte software
+            [Display.MAX_VALUE]: 4000, // Test min and max with Gigabyte software
         },
     ];
     const metersSettings = [
@@ -172,37 +215,22 @@
             [Sensor.DELAY]: 1,
             [Display.ID]: 'wd-load',
         },
-        {
-            [Display.LABEL]: '3FANS',
-            [Sensor.HARDWARE]: 0,
-            [Sensor.SUB_HARDWARE]: 0,
-            [Sensor.SENSOR]: 23,
-            [Sensor.DELAY]: 1,
-            [Display.ID]: 'triple-fans',
-        },
-        {
-            [Display.LABEL]: 'CHIPSET',
-            [Sensor.HARDWARE]: 0,
-            [Sensor.SUB_HARDWARE]: 0,
-            [Sensor.SENSOR]: 22,
-            [Sensor.DELAY]: 1,
-            [Display.ID]: 'chipset-fan',
-        },
-        {
-            [Display.LABEL]: 'PUMP',
-            [Sensor.HARDWARE]: 0,
-            [Sensor.SUB_HARDWARE]: 1,
-            [Sensor.SENSOR]: 15,
-            [Sensor.DELAY]: 1,
-            [Display.ID]: 'pump',
-        },
+        // {
+        //     [Display.LABEL]: 'CHIPSET',
+        //     [Sensor.HARDWARE]: 0,
+        //     [Sensor.SUB_HARDWARE]: 0,
+        //     [Sensor.SENSOR]: 22,
+        //     [Sensor.DELAY]: 1,
+        //     [Display.ID]: 'chipset-fan',
+        // },
     ];
+
     let charts = {};
+    let fans = {};
     let meters = {};
 
     tryConnection();
 </script>
-
 </body>
 </html>
 

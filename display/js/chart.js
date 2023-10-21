@@ -3,6 +3,7 @@
  *
  * TODO Add max decimals as option, then add decimal on internet, to have 0.01 MB/s instead of 0.0 MB/s
  * TODO SET METER VALUE COLOR (AND CHART) if min/max values set. If not -> white
+ * TODO Still getting all of a sudden a really high download value, not sure if correct
  */
 
 Object.prototype.get = function (property, defaultValue) {
@@ -40,10 +41,12 @@ class Chart extends BaseUiElement {
     constructor(options) {
         super()
         this.values = [];
+        this.width = options.get(Display.WIDTH, CHART_WIDTH);
         this.height = options.get(Display.HEIGHT, CHART_HEIGHT);
         this.valueCount = options.get(Display.VALUE_COUNT, CHART_VALUE_COUNT);
-        this.minValue = options.get(Display.MIN_VALUE);
-        this.maxValue = options.get(Display.MAX_VALUE);
+        this.minValue = options.get(Display.MIN_VALUE, DEFAULT_MIN_VALUE);
+        this.maxValue = options.get(Display.MAX_VALUE, DEFAULT_MAX_VALUE);
+        this.deltaValues = this.maxValue - this.minValue;
         this.multiplier = options.get(Display.MULTIPLIER);
         this.unit = options.get(Display.UNIT);
 
@@ -52,7 +55,7 @@ class Chart extends BaseUiElement {
         this.element.className = 'chart chart-histogram';
         this.element.id = options.get(Display.ID);
         this.element.style.height = `${this.height}px`;
-        this.element.style.width = `${options.get(Display.WIDTH, CHART_WIDTH)}px`;
+        this.element.style.width = `${this.width}px`;
 
         // Create values container
         this.elementValues = document.createElement('DIV');
@@ -62,10 +65,10 @@ class Chart extends BaseUiElement {
         // Create legend
         this.legend = document.createElement('DIV');
         this.legend.className = 'chart-legend';
-        let node = document.createElement('DIV');
-        node.classList = 'legend-label';
-        node.innerHTML = options.get(Display.LABEL);
-        this.legend.appendChild(node);
+        let label = document.createElement('DIV');
+        label.classList = 'legend-label';
+        label.innerHTML = options.get(Display.LABEL);
+        this.legend.appendChild(label);
         this.legendValue = document.createElement('DIV');
         this.legendValue.classList = 'legend-value';
         this.legend.appendChild(this.legendValue);
@@ -95,13 +98,14 @@ class Chart extends BaseUiElement {
         this.legendValue.innerHTML = `${value.toFixed(MAX_DECIMALS)} ${this.unit || sensorData[Sensor.UNIT]}`;
 
         // console.log(this.values);
-        let x = this.valueCount - 1;
+        let reverseCounter = this.valueCount - 1;
 
+        // Loop in all chart bar divs and set their new length and colors as the bars get pushed left
         for (let i = this.values.length - 1; i >= 0; --i) {
-            let ratio = Math.min(1.0, Math.max(this.values[i] / this.maxValue, 0.0));
-            this.elementValues.children[x].style.height = `${Math.max(0.05, ratio) * this.height}px`;
-            this.elementValues.children[x].style.backgroundColor = this.getColor(ratio);
-            --x;
+            let ratio = Math.min(1.0, Math.max((this.values[i] - this.minValue) / this.deltaValues, 0.0));
+            this.elementValues.children[reverseCounter].style.height = `${Math.max(0.05, ratio) * this.height}px`;
+            this.elementValues.children[reverseCounter].style.backgroundColor = this.getColor(ratio);
+            --reverseCounter;
         }
 
         // let chart = this;
@@ -118,26 +122,87 @@ class Chart extends BaseUiElement {
 }
 
 
+class Fan extends BaseUiElement {
+    constructor(options) {
+        super()
+        this.multiplier = options.get(Display.MULTIPLIER);
+        this.unit = options.get(Display.UNIT);
+        this.minRPM = options.get(Display.MIN_VALUE, DEFAULT_MIN_VALUE);
+        this.maxRPM = options.get(Display.MAX_VALUE, DEFAULT_MAX_VALUE);
+        this.deltaRPM = this.maxRPM - this.minRPM;
+        this.deltaAnimationDuration = FAN_MIN_ANIMATION_DURATION - FAN_MAX_ANIMATION_DURATION;
+
+        // Create main meter node
+        this.element = document.createElement('DIV');
+        this.element.className = 'fan';
+        this.element.id = options.get(Display.ID);
+
+        // Create fan
+        this.fanFrame = document.createElement('DIV');
+        this.fanFrame.className = 'fan-frame';
+        let fanBlades = document.createElement('IMG');
+        fanBlades.classList = 'fan-blades';
+        fanBlades.src = "images/fan.png";
+        this.fanFrame.appendChild(fanBlades);
+        this.element.appendChild(this.fanFrame);
+        
+        // Create label and value
+        this.legend = document.createElement('DIV');
+        this.legend.className = 'fan-legend';
+        let label = document.createElement('DIV');
+        label.classList = 'fan-label';
+        label.innerHTML = options.get(Display.LABEL);
+        this.legend.appendChild(label);
+        this.fanValue = document.createElement('DIV');
+        this.fanValue.classList = 'fan-value';
+        this.legend.appendChild(this.fanValue);
+        this.element.appendChild(this.legend);
+
+        document.getElementById('fans').appendChild(this.element);
+    }
+
+    // Calculates green to red color with a value from 0 to 1
+    getColor(value) {
+        let hue = ((1 - value) * 120).toString(10);
+        return `hsl(${hue}, 100%, 50%)`;
+    }
+
+    pushValue(sensorData) {
+        let value = this.multiplier ? this.multiplier * sensorData[Sensor.VALUE] : sensorData[Sensor.VALUE];
+        this.fanValue.innerHTML = `${value.toFixed(MAX_DECIMALS)} ${this.unit || sensorData[Sensor.UNIT]}`;
+        let animationSpeed = FAN_MAX_ANIMATION_DURATION + (value - this.minRPM)/(this.deltaRPM ) * this.deltaAnimationDuration;
+        this.element.querySelector(".fan-blades").style.animationDuration = `${animationSpeed}s`;
+
+        let ratio = Math.min(1.0, Math.max((value - this.minRPM) / this.deltaRPM, 0.0));
+        this.fanValue.style.color = this.getColor(ratio);
+    }
+}
+
+
 class Meter extends BaseUiElement {
     constructor(options) {
         super()
         this.multiplier = options.get(Display.MULTIPLIER);
         this.unit = options.get(Display.UNIT);
+        this.minValue = options.get(Display.MIN_VALUE, DEFAULT_MIN_VALUE);
+        this.maxValue = options.get(Display.MAX_VALUE, DEFAULT_MAX_VALUE);
+        this.deltaValues = this.maxValue - this.minValue;
 
         // Create main meter node
         this.element = document.createElement('DIV');
         this.element.className = 'meter';
         this.element.id = options.get(Display.ID);
 
-        // Create labeyl and value
-        let node = document.createElement('SPAN');
-        node.classList = 'meter-label';
-        node.innerHTML = `${options.get(Display.LABEL)}:`;
-        this.element.appendChild(node);
+        // Create label and value
+        let label = document.createElement('SPAN');
+        label.classList = 'meter-label';
+        label.innerHTML = `${options.get(Display.LABEL)}:`;
+        this.element.appendChild(label);
         this.meterValue = document.createElement('SPAN');
         this.meterValue.classList = 'meter-value';
         this.element.appendChild(this.meterValue);
 
+        // document.getElementById('fans').appendChild(this.element);
         document.getElementById('meters').appendChild(this.element);
     }
 
@@ -151,9 +216,8 @@ class Meter extends BaseUiElement {
         let value = this.multiplier ? this.multiplier * sensorData[Sensor.VALUE] : sensorData[Sensor.VALUE];
         this.meterValue.innerHTML = `${value.toFixed(MAX_DECIMALS)} ${this.unit || sensorData[Sensor.UNIT]}`;
 
-        // NOT SET YET
-        // let ratio = value / this.maxValue;
-        // this.meterValue.style.color = this.getColor(ratio);
+        let ratio = Math.min(1.0, Math.max((value - this.minValue) / this.deltaValues, 0.0));
+        this.meterValue.style.color = this.getColor(ratio);
     }
 }
 
@@ -179,6 +243,30 @@ function startGraphs() {
     console.log(requested_sensors);
     return requested_sensors;
 }
+
+
+function startFans() {
+    let requested_sensors = [];
+
+    fansSettings.forEach(function (fanSettings, index) {
+        // Checks if fan already exists, not sure if it should be cleared when it exists (computer restarts)
+        if (!fans[fanSettings[Display.ID]])
+            fans[fanSettings[Display.ID]] = new Fan(fanSettings);
+
+        requested_sensors.push({
+            [Display.ID]: fanSettings[Display.ID],
+            [Display.LABEL]: fanSettings[Display.LABEL],
+            [Sensor.HARDWARE]: fanSettings[Sensor.HARDWARE],
+            [Sensor.SUB_HARDWARE]: fanSettings[Sensor.SUB_HARDWARE],
+            [Sensor.SENSOR]: fanSettings[Sensor.SENSOR],
+            [Sensor.DELAY]: fanSettings[Sensor.DELAY]
+        });
+    });
+
+    console.log(requested_sensors);
+    return requested_sensors;
+}
+
 
 function startMeters() {
     let requested_sensors = [];

@@ -11,7 +11,12 @@ body {
     background-repeat: repeat;
 }
 
-.chart, .meter {
+#charts, #fans, #meters {
+    display: inline-block;
+    vertical-align: top;
+}
+
+.chart, .fan, .meter {
     position: relative;
     display: inline-block;
     box-sizing: border-box;
@@ -20,6 +25,7 @@ body {
 .meter {
     margin: 3px 40px 0 2px;
     background-color: rgba(0, 0, 0, 0.6);
+    vertical-align: top;
 }
 
 .chart {
@@ -37,11 +43,18 @@ body {
     display: inline-block;
 }
 
-.chart-legend, .meter-label, .meter-value {
+.chart-legend, .fan-label, .fan-value, .meter-label, .meter-value {
     font-family: "Courier New", sans-serif;
     font-weight: bold;
     font-size: 20px;
+}
+
+.chart-legend, .fan-label, .meter-label {
     color: white;
+}
+
+.chart-legend, .fan-legend {
+    padding: 5px;
 }
 
 .chart-legend {
@@ -49,12 +62,18 @@ body {
     position: absolute;
     left: 0;
     /*bottom: 0;*/
-    padding: 5px;
+}
+
+.fan-legend {
+    display: inline-block;
 }
 
 .meter-label, .meter-value {
     padding: 5px;
-    background-color: rgba(0, 0, 0, 0.6);
+    /*background-color: rgba(0, 0, 0, 0.6);*/
+}
+
+.fan-label, .fan-value {
 }
 
 /*.graph-chart-point {*/
@@ -65,4 +84,29 @@ body {
 .chart-histogram-bar {
     box-sizing: border-box;
     border: 1px solid black;
+}
+
+.fan-frame {
+    background: url(../images/fan-contour.png);
+    margin-bottom: 10px;
+    float: left;
+}
+
+
+@keyframes rotating-fans {
+    from {
+        transform: rotate(0deg);
+    }
+    to {
+        transform: rotate(360deg);
+    }
+}
+
+.fan-blades {
+    margin: 4px;
+    transform-origin: 24px 25px;
+    animation-name: rotating-fans;
+    /*animation-duration: 1.0s; Set ar runtime, keeping it for reference*/
+    animation-timing-function: linear;
+    animation-iteration-count: infinite;
 }
