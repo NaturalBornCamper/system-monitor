@@ -4,6 +4,8 @@
  * TODO Add max decimals as option, then add decimal on internet, to have 0.01 MB/s instead of 0.0 MB/s
  * TODO SET METER VALUE COLOR (AND CHART) if min/max values set. If not -> white
  * TODO Still getting all of a sudden a really high download value, not sure if correct
+ * TODO Why is the PUMP fan animation jittery when it refreshes? Doesn't seem to happen with Radiator (maybe radiator not changing?)
+ * TODO Transparency not working on RPi screen for legend?
  */
 
 Object.prototype.get = function (property, defaultValue) {
@@ -145,7 +147,7 @@ class Fan extends BaseUiElement {
         fanBlades.src = "images/fan.png";
         this.fanFrame.appendChild(fanBlades);
         this.element.appendChild(this.fanFrame);
-        
+
         // Create label and value
         this.legend = document.createElement('DIV');
         this.legend.className = 'fan-legend';
@@ -169,7 +171,7 @@ class Fan extends BaseUiElement {
 
     pushValue(sensorData) {
         let value = this.multiplier ? this.multiplier * sensorData[Sensor.VALUE] : sensorData[Sensor.VALUE];
-        this.fanValue.innerHTML = `${value.toFixed(MAX_DECIMALS)} ${this.unit || sensorData[Sensor.UNIT]}`;
+        this.fanValue.innerHTML = `${value.toFixed(0)} ${this.unit || sensorData[Sensor.UNIT]}`;
         let animationSpeed = FAN_MAX_ANIMATION_DURATION + (value - this.minRPM)/(this.deltaRPM ) * this.deltaAnimationDuration;
         this.element.querySelector(".fan-blades").style.animationDuration = `${animationSpeed}s`;
 
