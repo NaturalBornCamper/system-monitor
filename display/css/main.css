@@ -66,6 +66,7 @@ body {
 
 .fan-legend {
     display: inline-block;
+    margin-top: 10px;
 }
 
 .meter-label, .meter-value {
@@ -87,26 +88,12 @@ body {
 }
 
 .fan-frame {
-    background: url(../images/fan-contour.png);
     margin-bottom: 10px;
     float: left;
 }
 
-
-@keyframes rotating-fans {
-    from {
-        transform: rotate(0deg);
-    }
-    to {
-        transform: rotate(360deg);
-    }
-}
-
 .fan-blades {
-    margin: 4px;
-    transform-origin: 24px 25px;
-    animation-name: rotating-fans;
-    /*animation-duration: 1.0s; Set ar runtime, keeping it for reference*/
-    animation-timing-function: linear;
-    animation-iteration-count: infinite;
+    margin-bottom: 10px;
+    float: left;
+    transform-origin: 36.5px 36.5px;
 }

@@ -4,8 +4,6 @@
  * TODO Add max decimals as option, then add decimal on internet, to have 0.01 MB/s instead of 0.0 MB/s
  * TODO SET METER VALUE COLOR (AND CHART) if min/max values set. If not -> white
  * TODO Still getting all of a sudden a really high download value, not sure if correct
- * TODO Why is the PUMP fan animation jittery when it refreshes? Doesn't seem to happen with Radiator (maybe radiator not changing?)
- * TODO Transparency not working on RPi screen for legend?
  */
 
 Object.prototype.get = function (property, defaultValue) {
@@ -109,17 +107,6 @@ class Chart extends BaseUiElement {
             this.elementValues.children[reverseCounter].style.backgroundColor = this.getColor(ratio);
             --reverseCounter;
         }
-
-        // let chart = this;
-        // this.values.forEach(function (value, index) {
-        //     if (typeof chart.elementValues.children[x] === 'undefined') {
-        //         return console.error(`Chart child doesn't exist: ${x}`)
-        //     }
-        //     let ratio = value / chart.maxValue;
-        //     chart.elementValues.children[x].style.height = `${ratio * chart.height}px`;
-        //     chart.elementValues.children[x].style.backgroundColor = chart.getColor(ratio);
-        //     --x;
-        // });
     }
 }
 
@@ -132,21 +119,19 @@ class Fan extends BaseUiElement {
         this.minRPM = options.get(Display.MIN_VALUE, DEFAULT_MIN_VALUE);
         this.maxRPM = options.get(Display.MAX_VALUE, DEFAULT_MAX_VALUE);
         this.deltaRPM = this.maxRPM - this.minRPM;
-        this.deltaAnimationDuration = FAN_MIN_ANIMATION_DURATION - FAN_MAX_ANIMATION_DURATION;
+        this.deltaFanSpeed = FAN_MAX_SPEED - FAN_MIN_SPEED;
+        this.angle = 0;
+        this.speed = 0;
 
         // Create main meter node
         this.element = document.createElement('DIV');
         this.element.className = 'fan';
         this.element.id = options.get(Display.ID);
 
-        // Create fan
-        this.fanFrame = document.createElement('DIV');
-        this.fanFrame.className = 'fan-frame';
-        let fanBlades = document.createElement('IMG');
-        fanBlades.classList = 'fan-blades';
-        fanBlades.src = "images/fan.png";
-        this.fanFrame.appendChild(fanBlades);
-        this.element.appendChild(this.fanFrame);
+        this.fanBlades = document.createElement('IMG');
+        this.fanBlades.classList = 'fan-blades';
+        this.fanBlades.src = "images/fan_and_frame.png";
+        this.element.appendChild(this.fanBlades);
 
         // Create label and value
         this.legend = document.createElement('DIV');
@@ -161,6 +146,11 @@ class Fan extends BaseUiElement {
         this.element.appendChild(this.legend);
 
         document.getElementById('fans').appendChild(this.element);
+
+        // Bind 'this' to the rotateFan function (Needed or "this" will not be the current object in the method)
+        this.rotateFan = this.rotateFan.bind(this);
+        // Initialize animation frame id
+        this.frameId = null;
     }
 
     // Calculates green to red color with a value from 0 to 1
@@ -172,11 +162,28 @@ class Fan extends BaseUiElement {
     pushValue(sensorData) {
         let value = this.multiplier ? this.multiplier * sensorData[Sensor.VALUE] : sensorData[Sensor.VALUE];
         this.fanValue.innerHTML = `${value.toFixed(0)} ${this.unit || sensorData[Sensor.UNIT]}`;
-        let animationSpeed = FAN_MAX_ANIMATION_DURATION + (value - this.minRPM)/(this.deltaRPM ) * this.deltaAnimationDuration;
-        this.element.querySelector(".fan-blades").style.animationDuration = `${animationSpeed}s`;
 
         let ratio = Math.min(1.0, Math.max((value - this.minRPM) / this.deltaRPM, 0.0));
+
+        this.speed = this.deltaFanSpeed * ratio + FAN_MIN_SPEED;
+
         this.fanValue.style.color = this.getColor(ratio);
+    }
+
+
+    rotateFan() {
+        // Cancel any pending animation frames
+        if (this.frameId !== null) {
+            cancelAnimationFrame(this.frameId);
+        }
+        // Update the angle
+        this.angle = (this.angle + this.speed) % 360;
+
+        // Apply the rotation to the image
+        this.fanBlades.style.transform = `rotate(${this.angle}deg)`;
+
+        // Request the next frame
+        this.frameId = requestAnimationFrame(this.rotateFan);
     }
 }
 
@@ -252,8 +259,10 @@ function startFans() {
 
     fansSettings.forEach(function (fanSettings, index) {
         // Checks if fan already exists, not sure if it should be cleared when it exists (computer restarts)
-        if (!fans[fanSettings[Display.ID]])
+        if (!fans[fanSettings[Display.ID]]) {
             fans[fanSettings[Display.ID]] = new Fan(fanSettings);
+            fans[fanSettings[Display.ID]].rotateFan();
+        }
 
         requested_sensors.push({
             [Display.ID]: fanSettings[Display.ID],
