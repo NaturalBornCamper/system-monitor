@@ -172,6 +172,7 @@ class Fan extends BaseUiElement {
 
 
     rotateFan() {
+        return;
         // Cancel any pending animation frames
         if (this.frameId !== null) {
             cancelAnimationFrame(this.frameId);
