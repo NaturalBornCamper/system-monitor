@@ -120,8 +120,9 @@ class Fan extends BaseUiElement {
         this.maxRPM = options.get(Display.MAX_VALUE, DEFAULT_MAX_VALUE);
         this.deltaRPM = this.maxRPM - this.minRPM;
         this.deltaFanSpeed = FAN_MAX_SPEED - FAN_MIN_SPEED;
-        this.angle = 0;
-        this.speed = 0;
+        this.fanAngle = 0;
+        this.fanLastTimestamp = 0;
+        this.fanLastDuration = 0;
 
         // Create main meter node
         this.element = document.createElement('DIV');
@@ -146,11 +147,6 @@ class Fan extends BaseUiElement {
         this.element.appendChild(this.legend);
 
         document.getElementById('fans').appendChild(this.element);
-
-        // Bind 'this' to the rotateFan function (Needed or "this" will not be the current object in the method)
-        this.rotateFan = this.rotateFan.bind(this);
-        // Initialize animation frame id
-        this.frameId = null;
     }
 
     // Calculates green to red color with a value from 0 to 1
@@ -161,30 +157,40 @@ class Fan extends BaseUiElement {
 
     pushValue(sensorData) {
         let value = this.multiplier ? this.multiplier * sensorData[Sensor.VALUE] : sensorData[Sensor.VALUE];
+        // value = Math.floor(Math.random() * (this.maxRPM - this.minRPM + 1) + this.minRPM);
         this.fanValue.innerHTML = `${value.toFixed(0)} ${this.unit || sensorData[Sensor.UNIT]}`;
 
         let ratio = Math.min(1.0, Math.max((value - this.minRPM) / this.deltaRPM, 0.0));
-
-        this.speed = this.deltaFanSpeed * ratio + FAN_MIN_SPEED;
-
+        this.updateFanSpeed(this.deltaFanSpeed * ratio + FAN_MIN_SPEED);
         this.fanValue.style.color = this.getColor(ratio);
     }
 
+    updateFanSpeed(newSpeed) {
+        let duration = 50 / newSpeed;
+        let currentTimestamp = new Date() / 1000;
+        let timestampDifference = currentTimestamp - this.fanLastTimestamp;
 
-    rotateFan() {
-        return;
-        // Cancel any pending animation frames
-        if (this.frameId !== null) {
-            cancelAnimationFrame(this.frameId);
+        // Disable rotation and force update
+        this.fanBlades.classList.remove("enable-rotate");
+        this.fanBlades.offsetHeight;
+
+        if (!this.fanLastDuration && duration) {
+            this.fanBlades.style.transform = "";
+        } else {
+            this.fanAngle += (timestampDifference % this.fanLastDuration) / this.fanLastDuration;
         }
-        // Update the angle
-        this.angle = (this.angle + this.speed) % 360;
 
-        // Apply the rotation to the image
-        this.fanBlades.style.transform = `rotate(${this.angle}deg)`;
+        if (duration) {
+            this.fanBlades.style.animationDuration = `${duration}s`;
+            this.fanBlades.style.animationDelay = `${-duration * this.fanAngle}s`;
+            this.fanBlades.classList.add("enable-rotate");
+        } else {
+            this.fanBlades.style.transform = `rotate(${360 * this.fanAngle}deg)`;
+        }
 
-        // Request the next frame
-        this.frameId = requestAnimationFrame(this.rotateFan);
+        this.fanAngle -= this.fanAngle | 0; //use fractional part only
+        this.fanLastTimestamp = currentTimestamp;
+        this.fanLastDuration = duration;
     }
 }
 
@@ -262,7 +268,6 @@ function startFans() {
         // Checks if fan already exists, not sure if it should be cleared when it exists (computer restarts)
         if (!fans[fanSettings[Display.ID]]) {
             fans[fanSettings[Display.ID]] = new Fan(fanSettings);
-            fans[fanSettings[Display.ID]].rotateFan();
         }
 
         requested_sensors.push({

@@ -95,5 +95,15 @@ body {
 .fan-blades {
     margin-bottom: 10px;
     float: left;
-    transform-origin: 36.5px 36.5px;
+    /*animation-duration: 1.0s; Set ar runtime, keeping it for reference*/
+}
+
+.enable-rotate {
+  animation: rotateRight infinite linear;
+}
+
+@keyframes rotateRight {
+  100% {
+    transform: rotate(360deg);
+  }
 }
