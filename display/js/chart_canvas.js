@@ -5,6 +5,7 @@
  * TODO SET METER VALUE COLOR (AND CHART) if min/max values set. If not -> white
  * TODO Still getting all of a sudden a really high download value, not sure if correct
  * TODO find a way to optimize interface, fans are glitchy
+ * TODO Chart bars rounded edges
  * TODO Add corners around chart bos, but not rounded, square. (4 L-shaped lines around each corner)
  * TODO Change the grandpapa blue background. Grid is ok, BG is a weird old blue
  * TODO Check what is the ram temperature, if higher than hotspot
@@ -81,15 +82,20 @@ class Chart extends BaseUiElement {
         this.legend.appendChild(this.legendValue);
         this.element.appendChild(this.legend);
 
-        let createdValue;
+        let createdValue, createdValueContext;
         let chart_value_width = Math.floor(options.get(Display.WIDTH, CHART_WIDTH) / this.valueCount);
+        this.barWidth = chart_value_width;
         for (let i = 0; i < this.valueCount; ++i) {
-            createdValue = document.createElement('DIV');
+            createdValue = document.createElement('canvas');
+            createdValueContext = createdValue.getContext('2d');
+            createdValueContext.fillRect(0, 0, chart_value_width, this.height);
+
+            // createdValue = document.createElement('DIV');
             createdValue.className = 'chart-value chart-histogram-bar';
-            createdValue.style.height = `0`;
+            // createdValue.style.height = `0`;
             // createdValue.style.height = `${this.getCalculatedHeight(i)}px`;
-            createdValue.style.width = `${chart_value_width}px`;
-            createdValue.style.marginBottom = `-${this.height}px`;
+            // createdValue.style.width = `${chart_value_width}px`;
+            // createdValue.style.marginBottom = `-${this.height}px`;
             this.elementValues.appendChild(createdValue);
         }
 
@@ -111,8 +117,9 @@ class Chart extends BaseUiElement {
         // Loop in all chart bar divs and set their new length and colors as the bars get pushed left
         for (let i = this.values.length - 1; i >= 0; --i) {
             let ratio = Math.min(1.0, Math.max((this.values[i] - this.minValue) / this.deltaValues, 0.0));
-            this.elementValues.children[reverseCounter].style.height = `${Math.max(0.05, ratio) * this.height}px`;
-            this.elementValues.children[reverseCounter].style.backgroundColor = this.getColor(ratio);
+            this.elementValues.children[reverseCounter].getContext('2d').fillRect(0, 0, this.barWidth, Math.max(0.05, ratio) * this.height);
+            // this.elementValues.children[reverseCounter].style.height = `${Math.max(0.05, ratio) * this.height}px`;
+            // this.elementValues.children[reverseCounter].style.backgroundColor = this.getColor(ratio);
             --reverseCounter;
         }
     }
@@ -212,7 +219,7 @@ class Fan extends BaseUiElement {
 class Meter extends BaseUiElement {
     constructor(options) {
         super()
-        // return;
+        return;
         this.multiplier = options.get(Display.MULTIPLIER);
         this.unit = options.get(Display.UNIT);
         this.minValue = options.get(Display.MIN_VALUE, DEFAULT_MIN_VALUE);
@@ -244,7 +251,7 @@ class Meter extends BaseUiElement {
     }
 
     pushValue(sensorData) {
-        // return;
+        return;
         let value = this.multiplier ? this.multiplier * sensorData[Sensor.VALUE] : sensorData[Sensor.VALUE];
         this.meterValue.innerHTML = `${value.toFixed(MAX_DECIMALS)} ${this.unit || sensorData[Sensor.UNIT]}`;
 
