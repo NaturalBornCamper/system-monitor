@@ -34,6 +34,7 @@ body {
     /*display: flex;*/
     font-size: 0;
     background-color: rgba(0, 0, 0, 0.15);
+    contain: layout paint;
 }
 
 .chart-histogram {
@@ -107,6 +108,7 @@ body {
 .fan-blades {
     margin-bottom: 10px;
     float: left;
+    will-change: transform;
     /*animation-duration: 1.0s; Set ar runtime, keeping it for reference*/
 }
 
