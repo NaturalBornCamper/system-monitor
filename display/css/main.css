@@ -11,6 +11,30 @@ body {
     background-repeat: repeat;
 }
 
+#status {
+    position: fixed;
+    top: 4px;
+    right: 6px;
+    padding: 2px 6px;
+    border-radius: 3px;
+    font-family: "Courier New", "Liberation Mono", "DejaVu Sans Mono", "Noto Sans Mono", monospace;
+    font-size: 12px;
+    font-weight: bold;
+    color: white;
+    background: rgba(0, 0, 0, 0.6);
+    z-index: 9999;
+    display: none;
+    pointer-events: none;
+}
+
+#status.warn {
+    background: rgba(255, 165, 0, 0.85);
+}
+
+#status.error {
+    background: rgba(255, 0, 0, 0.85);
+}
+
 #charts, #fans, #meters {
     display: inline-block;
     vertical-align: top;
