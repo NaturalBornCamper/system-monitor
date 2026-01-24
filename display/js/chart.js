@@ -4,9 +4,8 @@
  * TODO Add max decimals as option, then add decimal on internet, to have 0.01 MB/s instead of 0.0 MB/s
  * TODO SET METER VALUE COLOR (AND CHART) if min/max values set. If not -> white
  * TODO Still getting all of a sudden a really high download value, not sure if correct
- * TODO find a way to optimize interface, fans are glitchy
  * TODO Add corners around chart bos, but not rounded, square. (4 L-shaped lines around each corner)
- * TODO Change the grandpapa blue background. Grid is ok, BG is a weird old blue
+ * TODO Change the grandpapa blue background. Grid is ok, BG is a weird old blue. Maybe a AI-generated futuristic picture?
  * TODO Check what is the ram temperature, if higher than hotspot
  * TODO Make meters look better, maybe a single bar? A rotating meter like a speedometer? Or make into a single bar?
  * TODO Have a log function with a level, so I can leave log calls there and it does nothing in release mode
