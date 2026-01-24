@@ -56,6 +56,7 @@ class Chart extends BaseUiElement {
         this.deltaValues = this.maxValue - this.minValue;
         this.multiplier = options.get(Display.MULTIPLIER);
         this.unit = options.get(Display.UNIT);
+        this.minBarScale = 2 / this.height;
 
         // Create main graph node
         this.element = document.createElement('DIV');
@@ -74,10 +75,12 @@ class Chart extends BaseUiElement {
         this.legend.className = 'chart-legend';
         let label = document.createElement('DIV');
         label.classList = 'legend-label';
-        label.innerHTML = options.get(Display.LABEL);
+        label.textContent = options.get(Display.LABEL);
         this.legend.appendChild(label);
         this.legendValue = document.createElement('DIV');
         this.legendValue.classList = 'legend-value';
+        this.legendValueText = document.createTextNode('');
+        this.legendValue.appendChild(this.legendValueText);
         this.legend.appendChild(this.legendValue);
         this.element.appendChild(this.legend);
 
@@ -86,10 +89,11 @@ class Chart extends BaseUiElement {
         for (let i = 0; i < this.valueCount; ++i) {
             createdValue = document.createElement('DIV');
             createdValue.className = 'chart-value chart-histogram-bar';
-            createdValue.style.height = `0`;
+            createdValue.style.height = `${this.height}px`;
+            createdValue.style.transform = `scaleY(${this.minBarScale})`;
+            createdValue.style.backgroundColor = '#000';
             // createdValue.style.height = `${this.getCalculatedHeight(i)}px`;
             createdValue.style.width = `${chart_value_width}px`;
-            createdValue.style.marginBottom = `-${this.height}px`;
             this.elementValues.appendChild(createdValue);
         }
 
@@ -103,7 +107,7 @@ class Chart extends BaseUiElement {
         if (this.values.length > this.valueCount) {
             this.values.shift();
         }
-        this.legendValue.innerHTML = `${value.toFixed(MAX_DECIMALS)} ${this.unit || sensorData[Sensor.UNIT]}`;
+        this.legendValueText.nodeValue = `${value.toFixed(MAX_DECIMALS)} ${this.unit || sensorData[Sensor.UNIT]}`;
 
         // console.log(this.values);
         let reverseCounter = this.valueCount - 1;
@@ -111,7 +115,7 @@ class Chart extends BaseUiElement {
         // Loop in all chart bar divs and set their new length and colors as the bars get pushed left
         for (let i = this.values.length - 1; i >= 0; --i) {
             let ratio = Math.min(1.0, Math.max((this.values[i] - this.minValue) / this.deltaValues, 0.0));
-            this.elementValues.children[reverseCounter].style.height = `${Math.max(0.05, ratio) * this.height}px`;
+            this.elementValues.children[reverseCounter].style.transform = `scaleY(${Math.max(this.minBarScale, ratio)})`;
             this.elementValues.children[reverseCounter].style.backgroundColor = this.getColor(ratio);
             --reverseCounter;
         }
@@ -147,10 +151,12 @@ class Fan extends BaseUiElement {
         this.legend.className = 'fan-legend';
         let label = document.createElement('DIV');
         label.classList = 'fan-label';
-        label.innerHTML = options.get(Display.LABEL);
+        label.textContent = options.get(Display.LABEL);
         this.legend.appendChild(label);
         this.fanValue = document.createElement('DIV');
         this.fanValue.classList = 'fan-value';
+        this.fanValueText = document.createTextNode('');
+        this.fanValue.appendChild(this.fanValueText);
         this.legend.appendChild(this.fanValue);
         this.element.appendChild(this.legend);
 
@@ -167,7 +173,7 @@ class Fan extends BaseUiElement {
     pushValue(sensorData) {
         let value = this.multiplier ? this.multiplier * sensorData[Sensor.VALUE] : sensorData[Sensor.VALUE];
         // value = Math.floor(Math.random() * (this.maxRPM - this.minRPM + 1) + this.minRPM);
-        this.fanValue.innerHTML = `${value.toFixed(0)} ${this.unit || sensorData[Sensor.UNIT]}`;
+        this.fanValueText.nodeValue = `${value.toFixed(0)} ${this.unit || sensorData[Sensor.UNIT]}`;
 
         let ratio = Math.min(1.0, Math.max((value - this.minRPM) / this.deltaRPM, 0.0));
         this.updateFanSpeed(this.deltaFanSpeed * ratio + FAN_MIN_SPEED);
@@ -227,10 +233,12 @@ class Meter extends BaseUiElement {
         // Create label and value
         let label = document.createElement('SPAN');
         label.classList = 'meter-label';
-        label.innerHTML = `${options.get(Display.LABEL)}:`;
+        label.textContent = `${options.get(Display.LABEL)}:`;
         this.element.appendChild(label);
         this.meterValue = document.createElement('SPAN');
         this.meterValue.classList = 'meter-value';
+        this.meterValueText = document.createTextNode('');
+        this.meterValue.appendChild(this.meterValueText);
         this.element.appendChild(this.meterValue);
 
         // document.getElementById('fans').appendChild(this.element);
@@ -246,7 +254,7 @@ class Meter extends BaseUiElement {
     pushValue(sensorData) {
         // return;
         let value = this.multiplier ? this.multiplier * sensorData[Sensor.VALUE] : sensorData[Sensor.VALUE];
-        this.meterValue.innerHTML = `${value.toFixed(MAX_DECIMALS)} ${this.unit || sensorData[Sensor.UNIT]}`;
+        this.meterValueText.nodeValue = `${value.toFixed(MAX_DECIMALS)} ${this.unit || sensorData[Sensor.UNIT]}`;
 
         let ratio = Math.min(1.0, Math.max((value - this.minValue) / this.deltaValues, 0.0));
         this.meterValue.style.color = this.getColor(ratio);

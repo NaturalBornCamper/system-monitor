@@ -39,8 +39,17 @@ body {
 .chart-histogram {
 }
 
+.chart-values {
+    display: flex;
+    align-items: flex-end;
+    height: 100%;
+    position: relative;
+    z-index: 1;
+}
+
 .chart-value {
     display: inline-block;
+    flex: 0 0 auto;
 }
 
 .chart-legend, .fan-label, .fan-value, .meter-label, .meter-value {
@@ -61,6 +70,8 @@ body {
     background-color: rgba(0, 0, 0, 0.2);
     position: absolute;
     left: 0;
+    top: 0;
+    z-index: 2;
     /*bottom: 0;*/
 }
 
@@ -85,6 +96,7 @@ body {
 .chart-histogram-bar {
     box-sizing: border-box;
     border: 1px solid black;
+    transform-origin: bottom;
 }
 
 .fan-frame {
