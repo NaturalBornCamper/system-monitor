@@ -16,6 +16,10 @@ body {
     vertical-align: top;
 }
 
+#meters {
+    padding-top: 15px;
+}
+
 .chart, .fan, .meter {
     position: relative;
     display: inline-block;
@@ -53,8 +57,12 @@ body {
     flex: 0 0 auto;
 }
 
+.chart-canvas {
+    display: block;
+}
+
 .chart-legend, .fan-label, .fan-value, .meter-label, .meter-value {
-    font-family: "Courier New", sans-serif;
+    font-family: "Courier New", "Liberation Mono", "DejaVu Sans Mono", "Noto Sans Mono", monospace;
     font-weight: bold;
     font-size: 20px;
 }

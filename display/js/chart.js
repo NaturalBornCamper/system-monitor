@@ -56,7 +56,7 @@ class Chart extends BaseUiElement {
         this.deltaValues = this.maxValue - this.minValue;
         this.multiplier = options.get(Display.MULTIPLIER);
         this.unit = options.get(Display.UNIT);
-        this.minBarScale = 2 / this.height;
+        this.minBarPx = 2;
 
         // Create main graph node
         this.element = document.createElement('DIV');
@@ -84,20 +84,61 @@ class Chart extends BaseUiElement {
         this.legend.appendChild(this.legendValue);
         this.element.appendChild(this.legend);
 
-        let createdValue;
-        let chart_value_width = Math.floor(options.get(Display.WIDTH, CHART_WIDTH) / this.valueCount);
-        for (let i = 0; i < this.valueCount; ++i) {
-            createdValue = document.createElement('DIV');
-            createdValue.className = 'chart-value chart-histogram-bar';
-            createdValue.style.height = `${this.height}px`;
-            createdValue.style.transform = `scaleY(${this.minBarScale})`;
-            createdValue.style.backgroundColor = '#000';
-            // createdValue.style.height = `${this.getCalculatedHeight(i)}px`;
-            createdValue.style.width = `${chart_value_width}px`;
-            this.elementValues.appendChild(createdValue);
-        }
+        this.barWidth = Math.floor(options.get(Display.WIDTH, CHART_WIDTH) / this.valueCount);
+        this.canvas = document.createElement('canvas');
+        this.canvas.className = 'chart-canvas';
+        this.canvas.width = this.width;
+        this.canvas.height = this.height;
+        this.canvas.style.width = `${this.width}px`;
+        this.canvas.style.height = `${this.height}px`;
+        this.elementValues.appendChild(this.canvas);
+        this.ctx = this.canvas.getContext('2d');
+        this.ctx.lineWidth = 1;
+        this.ctx.imageSmoothingEnabled = false;
 
         document.getElementById('charts').appendChild(this.element);
+        this.render();
+    }
+
+    render() {
+        if (!this.ctx) {
+            return;
+        }
+
+        this.ctx.clearRect(0, 0, this.width, this.height);
+
+        let startIndex = this.valueCount - this.values.length;
+        let baselineHeight = this.minBarPx;
+
+        // Draw baseline bars where no data yet
+        this.ctx.fillStyle = '#000';
+        for (let i = 0; i < startIndex; ++i) {
+            let x = i * this.barWidth;
+            let y = this.height - baselineHeight;
+            this.ctx.fillRect(x, y, this.barWidth, baselineHeight);
+        }
+
+        // Draw data bars aligned to the right
+        for (let i = 0; i < this.values.length; ++i) {
+            let value = this.values[i];
+            let ratio = Math.min(1.0, Math.max((value - this.minValue) / this.deltaValues, 0.0));
+            let barHeight = Math.max(this.minBarPx, ratio * this.height);
+            let x = (startIndex + i) * this.barWidth;
+            let y = this.height - barHeight;
+            this.ctx.fillStyle = this.getColor(ratio);
+            this.ctx.fillRect(x, y, this.barWidth, barHeight);
+            this.ctx.strokeStyle = '#000';
+            if (barHeight > this.minBarPx) {
+                this.ctx.strokeRect(x + 0.5, y + 0.5, this.barWidth - 1, barHeight - 1);
+            } else {
+                this.ctx.beginPath();
+                this.ctx.moveTo(x + 0.5, y + 0.5);
+                this.ctx.lineTo(x + 0.5, y + barHeight - 0.5);
+                this.ctx.moveTo(x + this.barWidth - 0.5, y + 0.5);
+                this.ctx.lineTo(x + this.barWidth - 0.5, y + barHeight - 0.5);
+                this.ctx.stroke();
+            }
+        }
     }
 
     pushValue(sensorData) {
@@ -109,16 +150,7 @@ class Chart extends BaseUiElement {
         }
         this.legendValueText.nodeValue = `${value.toFixed(MAX_DECIMALS)} ${this.unit || sensorData[Sensor.UNIT]}`;
 
-        // console.log(this.values);
-        let reverseCounter = this.valueCount - 1;
-
-        // Loop in all chart bar divs and set their new length and colors as the bars get pushed left
-        for (let i = this.values.length - 1; i >= 0; --i) {
-            let ratio = Math.min(1.0, Math.max((this.values[i] - this.minValue) / this.deltaValues, 0.0));
-            this.elementValues.children[reverseCounter].style.transform = `scaleY(${Math.max(this.minBarScale, ratio)})`;
-            this.elementValues.children[reverseCounter].style.backgroundColor = this.getColor(ratio);
-            --reverseCounter;
-        }
+        this.render();
     }
 }
 
