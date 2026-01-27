@@ -1,6 +1,3 @@
-put license for dll files in git
-
-
 Concurrency:
 one task could update hardware 1, then before got answer, another task could ask to update hardware 1 too.
  Have it blocking?
@@ -11,9 +8,28 @@ check if possible that calls to update() are sent faster than receiving and it f
 
 self.datas should be an array per client, right now it's sending to anyone connected, needs to be "per client"
 
+BUGS:
+-Download from ethernet has issues
+ First, value often spikes. I checked in what was sent, it was this:
+  1173457.0 (This is 1.1MB/s)
+  1572972.0 
+  0.0
+  63890690.0 (This is 6.3MB/s)
+  1183454.0
+  0.0
+  0.0
+  1481002.0
+  Yet I had the actual hardware monitor opened at the same time and there was no spike.
+   I even checked the Max recorded value and it was only like 1.6MB/s with the same version hardware monitor(0.9.4)
+   Same with version 0.9.5, no spike, same max
+  This means this is an issue with how I'm getting the data. This ONLY happens with network though
+ Opposite of the spikes is that often, the value is at 0.0MB/S. Yet in the hardware monitor I see the value at 1.2MB/s for example
+  Seems to happen randomly, sometimes it shows the correct values in the graph. Maybe it's when it's below 1? For example if it'S 0.99, then it sees it as 0? NO, because 0.2MB/s shows correctly
 
-RENDU:
-# TODO Find out why  “Only one usage of each socket address is normally permitted” sometimes
+TODO: Update DLLs to use 0.9.5. Getting an error with new DLLs so I guess I need to open the C-sharp code and see what changed in the function calls
+
+RENDU (I think this is obsolete, clean it up):
+# TODO Find out why  ï¿½Only one usage of each socket address is normally permittedï¿½ sometimes
 # TODO List requested_sensors for Desktop testing
 # TODO Create interface with graphs and how I want it to look
 # TODO Logging! (See category below)
