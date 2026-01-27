@@ -8,24 +8,6 @@ check if possible that calls to update() are sent faster than receiving and it f
 
 self.datas should be an array per client, right now it's sending to anyone connected, needs to be "per client"
 
-BUGS:
--Download from ethernet has issues
- First, value often spikes. I checked in what was sent, it was this:
-  1173457.0 (This is 1.1MB/s)
-  1572972.0 
-  0.0
-  63890690.0 (This is 6.3MB/s)
-  1183454.0
-  0.0
-  0.0
-  1481002.0
-  Yet I had the actual hardware monitor opened at the same time and there was no spike.
-   I even checked the Max recorded value and it was only like 1.6MB/s with the same version hardware monitor(0.9.4)
-   Same with version 0.9.5, no spike, same max
-  This means this is an issue with how I'm getting the data. This ONLY happens with network though
- Opposite of the spikes is that often, the value is at 0.0MB/S. Yet in the hardware monitor I see the value at 1.2MB/s for example
-  Seems to happen randomly, sometimes it shows the correct values in the graph. Maybe it's when it's below 1? For example if it'S 0.99, then it sees it as 0? NO, because 0.2MB/s shows correctly
-
 TODO: Update DLLs to use 0.9.5. Getting an error with new DLLs so I guess I need to open the C-sharp code and see what changed in the function calls
 
 RENDU (I think this is obsolete, clean it up):
@@ -51,3 +33,13 @@ If getting error "cannot build assembly", it's because the dll is locked:
 2-"Properties"
 3-Under "General", click "Unblock"
 https://stackoverflow.com/a/58373260/1046013
+
+====================
+CODEX REVIEW NOTES (2026-01-27)
+====================
+- Disconnect cleanup may leak clients/tasks: `serve_new_client()` doesn't guarantee `disconnect_client()` runs on exit (no `try/finally`), so `clients[...]` entries + periodic tasks can survive dropped connections / refresh / hibernation.
+- Shared mutable class state: `Server.clients` is a class var, and `HardwareMonitor.executor/update_times/futures` are class vars; fine for 1 instance, surprising if multiple servers/monitors are created (or hot-reloaded).
+- Name collision in `constants.py`: `Sensor = namedtuple(...)` is later overwritten by `class Sensor` (string keys). Works, but easy to misread and breaks type clarity.
+- Type hints mismatch: sensors are annotated as `List[...]` but used like dicts with string keys (`sensor[Sensor.HARDWARE]` etc). Not a runtime bug, but can hide mistakes.
+- Potential thread-safety edge: `ThreadPoolExecutor(max_workers=3)` can update different hardware concurrently; if LibreHardwareMonitor isn't fully thread-safe across hardware updates, occasional weird readings are possible.
+- Startup fragility offline: IP detection uses UDP connect to `8.8.8.8`; if offline/restricted, server startup can fail.

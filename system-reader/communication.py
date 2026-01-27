@@ -42,6 +42,7 @@ class Server:
     monitor: HardwareMonitor = None
     clients: Dict[WebSocketClientProtocol, Client] = {}
 
+    # TODO Not sure how come we have a requested_sensors here since they are normally requested by the client, but I don't like that they are just indexes without keys her. Should be at least a dict. Fix this
     requested_sensors: List[Union[int, str]] = [
         [1, None, 4, 1],  # CPU Load
         [1, None, 9, 3],  # CPU Temp
