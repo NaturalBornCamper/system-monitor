@@ -73,6 +73,13 @@ class HardwareMonitor:
                 await self.create_update_callback(server, websocket, sensor)
             else:
                 # cprint(COLORS.RED, f"SKIPPING UPDATE FOR ({hardware_id},{sub_hardware_id})")
+                # Another coroutine might have already started an Update() for this same hardware. If we read a sensor
+                # value while Update() is running, LibreHardwareMonitor can temporarily return stale/zero values
+                # (network throughput is especially sensitive to this). Waiting here ensures we read a consistent,
+                # post-update snapshot when an update is in-flight.
+                key = (hardware_id, sub_hardware_id)
+                if key in self.futures and not self.futures[key].done():
+                    await asyncio.wrap_future(self.futures[key])
                 server.callback(websocket=websocket, sensor=sensor)
         else:
             # cprint(COLORS.RED, f"HARDWARE ({hardware_id},{sub_hardware_id}) FIRST UPDATE")
@@ -83,20 +90,24 @@ class HardwareMonitor:
         hardware_id = sensor[Sensor.HARDWARE]
         sub_hardware_id = sensor[Sensor.SUB_HARDWARE]
         # print("create_update_task:", hardware_id, time.time())
-        tuple = (hardware_id, sub_hardware_id)
-        if tuple in self.futures and self.futures[tuple].running():
-            # print(f"Future ({tuple[0]}, {tuple[1]}) EXISTS!! Waiting for result from other request: ", hardware_id)
-            while self.futures[tuple].running():
-                await asyncio.sleep(0.1)
-                server.callback(websocket=websocket, sensor=sensor)
-            # print(f"other request finished: ({hardware_id},{sub_hardware_id})")
-        else:
-            # cprint(COLORS.MAGENTA, f"Future ({tuple[0]}, {tuple[1]}) doesn't exist")
-            self.futures[tuple] = self.executor.submit(self.updater_thread, websocket=websocket, sensor=sensor)
-            self.futures[tuple].add_done_callback(server.callback)
-            # cprint(COLORS.MAGENTA, f"submit and created future ({tuple[0]}, {tuple[1]})")
+        key = (hardware_id, sub_hardware_id)
+        if key not in self.futures or self.futures[key].done():
+            # Ensure at most one Update() runs per (hardware_id, sub_hardware_id). Multiple sensors (ex: upload +
+            # download) can point at the same "Hardware" object, so they should share the same update future.
+            self.futures[key] = self.executor.submit(self.updater_thread, websocket=websocket, sensor=sensor)
+            # cprint(COLORS.MAGENTA, f"submit and created future ({key[0]}, {key[1]})")
 
-            # cprint(COLORS.YELLOW, f"got update from other future: ({hardware_id},{sub_hardware_id})")
+        # Important: wait for the update thread to finish, then read the sensor ONCE. The previous implementation
+        # used a loop like:
+        #   while future.running(): sleep(); callback()
+        # That meant we kept reading sensors *during* Update(), which produced intermittent 0/spike values and
+        # never guaranteed a final "fresh" reading for sensors that didn't start the update.
+        # Also: we deliberately do NOT use Future.add_done_callback(server.callback) here, because that would run
+        # server.callback() on the worker thread, racing with the asyncio websocket send/clear logic.
+        await asyncio.wrap_future(self.futures[key])
+        # print(f"other request finished: ({hardware_id},{sub_hardware_id})")
+        # cprint(COLORS.YELLOW, f"got update from other future: ({hardware_id},{sub_hardware_id})")
+        server.callback(websocket=websocket, sensor=sensor)
 
     # Note: Return type hint is a bit useless here as it will be placed in the "future" object, never
     # called directly. Left it there for reference
@@ -112,7 +123,8 @@ class HardwareMonitor:
             cprint(COLORS.BLUE, "hardware_id 99 finished stalling")
         else:
             # cprint(COLORS.CYAN, f"update_thread: ({hardware_id},{sub_hardware_id})")
-            if sub_hardware_id:
+            # sub_hardware_id can be 0 (valid index), so we must check against None explicitly.
+            if sub_hardware_id is not None:
                 self.handle.Hardware[hardware_id].SubHardware[sub_hardware_id].Update()
             else:
                 self.handle.Hardware[hardware_id].Update()
