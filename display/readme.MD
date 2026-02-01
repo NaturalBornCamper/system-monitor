@@ -97,7 +97,7 @@ This repo is the **display/UI** for the system monitor. It connects to the `syst
   - Auto triggers:
     - **BAD JSON**: incoming message could not be parsed even after sanitizing
     - **BAD DATA <id>=<value>**: a sensor value is `NaN`/`Infinity` and the UI falls back to the last known good value
-    - **DISCONNECTED**: websocket error or close
+    - **DISCONNECTED** / **DISCONNECTED #<n>**: websocket error/close; UI is retrying in the background (with backoff)
 - **Start kiosk now**:
   ```
   cage -s -- /home/pi/start_kiosk.sh
