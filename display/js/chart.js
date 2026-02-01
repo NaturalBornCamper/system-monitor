@@ -28,9 +28,9 @@ class BaseUiElement {
     // }
 
     // Calculates green to red color with a value from 0 to 1
-    getColor(value) {
+    getColor(value, alpha) {
         let hue = (1 - value) * 120;
-        return `hsla(${hue}, 100%, 50%, ${CHART_BAR_OPACITY})`;
+        return `hsla(${hue}, 100%, 50%, ${typeof alpha !== 'undefined' ? alpha : CHART_BAR_OPACITY})`;
     }
 
     // round(value){
@@ -56,6 +56,8 @@ class Chart extends BaseUiElement {
         this.multiplier = options.get(Display.MULTIPLIER);
         this.unit = options.get(Display.UNIT);
         this.minBarPx = 2;
+        this.barAlpha = this.parseAlpha(CHART_BAR_OPACITY);
+        this.barAlphaLeft = Math.max(0, Math.min(1, this.barAlpha * 0.05));
 
         // Create main graph node
         this.element = document.createElement('DIV');
@@ -124,7 +126,10 @@ class Chart extends BaseUiElement {
             let barHeight = Math.max(this.minBarPx, ratio * this.height);
             let x = (startIndex + i) * this.barWidth;
             let y = this.height - barHeight;
-            this.ctx.fillStyle = this.getColor(ratio);
+            let gradient = this.ctx.createLinearGradient(x, 0, x + this.barWidth, 0);
+            gradient.addColorStop(0, this.getColor(ratio, this.barAlphaLeft));
+            gradient.addColorStop(1, this.getColor(ratio, this.barAlpha));
+            this.ctx.fillStyle = gradient;
             this.ctx.fillRect(x, y, this.barWidth, barHeight);
             this.ctx.strokeStyle = '#000';
             if (barHeight > this.minBarPx) {
@@ -138,6 +143,32 @@ class Chart extends BaseUiElement {
                 this.ctx.stroke();
             }
         }
+    }
+
+    parseAlpha(alpha) {
+        if (typeof alpha === 'number') {
+            return Math.max(0, Math.min(1, alpha > 1 ? alpha / 100 : alpha));
+        }
+
+        if (typeof alpha !== 'string') {
+            return 1;
+        }
+
+        let trimmed = alpha.trim();
+        if (!trimmed) {
+            return 1;
+        }
+
+        if (trimmed.endsWith('%')) {
+            return Math.max(0, Math.min(1, parseFloat(trimmed) / 100));
+        }
+
+        let parsed = parseFloat(trimmed);
+        if (!Number.isFinite(parsed)) {
+            return 1;
+        }
+
+        return Math.max(0, Math.min(1, parsed > 1 ? parsed / 100 : parsed));
     }
 
     pushValue(sensorData) {
@@ -294,6 +325,13 @@ class Meter extends BaseUiElement {
 
 
 function startGraphs() {
+    if (typeof chartsSettings === 'undefined' || !Array.isArray(chartsSettings)) {
+        return [];
+    }
+    if (typeof charts === 'undefined' || !charts) {
+        return [];
+    }
+
     let requested_sensors = [];
 
     chartsSettings.forEach(function (chartSettings, index) {
@@ -317,6 +355,13 @@ function startGraphs() {
 
 
 function startFans() {
+    if (typeof fansSettings === 'undefined' || !Array.isArray(fansSettings)) {
+        return [];
+    }
+    if (typeof fans === 'undefined' || !fans) {
+        return [];
+    }
+
     let requested_sensors = [];
 
     fansSettings.forEach(function (fanSettings, index) {
@@ -341,6 +386,13 @@ function startFans() {
 
 
 function startMeters() {
+    if (typeof metersSettings === 'undefined' || !Array.isArray(metersSettings)) {
+        return [];
+    }
+    if (typeof meters === 'undefined' || !meters) {
+        return [];
+    }
+
     let requested_sensors = [];
 
     metersSettings.forEach(function (meterSettings, index) {

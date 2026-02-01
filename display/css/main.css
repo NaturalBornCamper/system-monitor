@@ -6,9 +6,44 @@ html, body {
 
 body {
     background-color: #111;
+}
+
+/* Backup (not active): tiled grid background */
+body.bg-mode-tiled {
     background-image: url("../images/grid-background.gif");
     /*background-image: url("../images/grid_white_inverted.gif");*/
     background-repeat: repeat;
+}
+
+/* Backup (not active): static image background */
+body.bg-mode-static {
+    background-image: url("../images/background-purple.png");
+    background-repeat: no-repeat;
+    background-position: center;
+    background-size: cover;
+}
+
+.bg-video__video {
+    display: none;
+}
+
+/* Active: video background */
+body.bg-mode-video .bg-video__video {
+    display: block;
+    position: fixed;
+    inset: 0;
+    width: 100vw;
+    height: 100vh;
+    object-fit: cover;
+    pointer-events: none;
+    z-index: 0;
+}
+
+body.bg-mode-video #charts,
+body.bg-mode-video #fans,
+body.bg-mode-video #meters {
+    position: relative;
+    z-index: 1;
 }
 
 #status {
@@ -97,10 +132,10 @@ body {
 
 .chart-legend, .fan-legend {
     padding: 5px;
+    background-color: rgba(0, 0, 0, 0.2);
 }
 
 .chart-legend {
-    background-color: rgba(0, 0, 0, 0.2);
     position: absolute;
     left: 0;
     top: 0;

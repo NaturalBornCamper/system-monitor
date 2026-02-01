@@ -10,7 +10,37 @@
     <script src="js/chart.js"></script>
     <script src="js/communication.js"></script>
 </head>
-<body>
+<body class="bg-mode-video">
+<video class="bg-video__video" muted loop playsinline preload="none">
+    <source src="videos/neon_background_loop_800x480.mp4" type="video/mp4">
+    <source src="videos/neon_background_loop_800x480.webm" type="video/webm">
+</video>
+<script>
+    // Start video if the background is set to use it
+    (function () {
+        const video = document.querySelector('.bg-video__video');
+        if (!video) return;
+
+        function updateVideoPlayback() {
+            const enabled = document.body.classList.contains('bg-mode-video');
+            if (enabled) {
+                video.preload = 'auto';
+                if (video.readyState === 0) {
+                    video.load();
+                }
+                video.play().catch(() => {});
+            } else {
+                video.pause();
+                video.preload = 'none';
+                video.currentTime = 0;
+            }
+        }
+
+        updateVideoPlayback();
+        const observer = new MutationObserver(updateVideoPlayback);
+        observer.observe(document.body, { attributes: true, attributeFilter: ['class'] });
+    })();
+</script>
 <div id="charts"></div>
 <div id="fans" style="width:400px"></div>
 <div id="meters" style="width:400px"></div>
@@ -23,7 +53,7 @@
     const CHART_WIDTH = 400;
     const CHART_HEIGHT = 80;
     const CHART_VALUE_COUNT = 40;
-    const CHART_BAR_OPACITY = '60%';
+    const CHART_BAR_OPACITY = '80%';
     const DEFAULT_MIN_VALUE = 0.0;
     const DEFAULT_MAX_VALUE = 100.0;
     const FAN_MIN_SPEED = 30;
@@ -233,12 +263,6 @@
 </script>
 </body>
 </html>
-
-
-
-
-
-
 
 
 

@@ -10,7 +10,37 @@
     <script src="js/chart.js"></script>
     <script src="js/communication.js"></script>
 </head>
-<body>
+<body class="bg-mode-video">
+<video class="bg-video__video" muted loop playsinline preload="none">
+    <source src="videos/neon_background_loop_800x480.mp4" type="video/mp4">
+    <source src="videos/neon_background_loop_800x480.webm" type="video/webm">
+</video>
+<script>
+    // Start video if the background is set to use it
+    (function () {
+        const video = document.querySelector('.bg-video__video');
+        if (!video) return;
+
+        function updateVideoPlayback() {
+            const enabled = document.body.classList.contains('bg-mode-video');
+            if (enabled) {
+                video.preload = 'auto';
+                if (video.readyState === 0) {
+                    video.load();
+                }
+                video.play().catch(() => {});
+            } else {
+                video.pause();
+                video.preload = 'none';
+                video.currentTime = 0;
+            }
+        }
+
+        updateVideoPlayback();
+        const observer = new MutationObserver(updateVideoPlayback);
+        observer.observe(document.body, { attributes: true, attributeFilter: ['class'] });
+    })();
+</script>
 <div id="charts"></div>
 <div id="meters"></div>
 
