@@ -15,22 +15,43 @@ This repo is the **display/UI** for the system monitor. It connects to the `syst
       ```
       sudo nano /etc/triggerhappy/triggers.d/kiosk.conf
       ```
-   2. Paste this exact line:
+   2. Paste these exact lines:
       ```
-      KEY_LEFTCTRL+KEY_C 1 /usr/bin/pkill -9 cage
+      KEY_C+KEY_LEFTCTRL 1 /usr/bin/pkill -9 cage
+      KEY_C+KEY_RIGHTCTRL 1 /usr/bin/pkill -9 cage
       ```
-   3. Restart the service:
+   3. Create a systemd override directory:
       ```
+      sudo mkdir -p /etc/systemd/system/triggerhappy.service.d
+      ```
+   4. Create the override file:
+      ```
+      sudo nano /etc/systemd/system/triggerhappy.service.d/10-kiosk-user.conf
+      ```
+   5. Paste this exact content:
+      ```
+      [Service]
+      ExecStart=
+      ExecStart=/usr/sbin/thd --triggers /etc/triggerhappy/triggers.d/ --socket /run/thd.socket --user pi --deviceglob "/dev/input/event*"
+      ```
+   6. Reload and restart the service:
+      ```
+      sudo systemctl daemon-reload
       sudo systemctl restart triggerhappy
       ```
 4. Create the kiosk scripts:
    1. Ensure the repo is cloned at `/home/pi/system-monitor/`.
-   2. Create the start script:
+   2. Create the start script (only works from local console):
       ```
       nano /home/pi/start_kiosk.sh
       ```
       ```
       #!/bin/bash
+      if [ -z "${WAYLAND_DISPLAY:-}" ] && [ "${1:-}" != "--inside-cage" ]; then
+        # Start Cage when this script is launched from a plain console
+        exec cage -s -- "$0" --inside-cage
+      fi
+
       /usr/lib/chromium/chromium \
           --kiosk \
           --no-first-run \
@@ -49,7 +70,7 @@ This repo is the **display/UI** for the system monitor. It connects to the `syst
       ```
       chmod +x /home/pi/start_kiosk.sh
       ```
-   4. Create the stop script:
+   4. Create the stop script (Works from SSH, but will restart after 5 seconds):
       ```
       nano /home/pi/stop_kiosk.sh
       ```
@@ -65,6 +86,18 @@ This repo is the **display/UI** for the system monitor. It connects to the `syst
       ```
       chmod +x /home/pi/stop_kiosk.sh
       ```
+   6. Create the SSH restart script (Works from SSH too as it's restarting the console and re-executing the startup script):
+      ```
+      nano /home/pi/restart_kiosk_from_ssh.sh
+      ```
+      ```
+      #!/bin/bash
+      sudo systemctl restart getty@tty1
+      ```
+   7. Make it executable:
+      ```
+      chmod +x /home/pi/restart_kiosk_from_ssh.sh
+      ```
 5. Autostart from console:
    1. Edit the profile:
       ```
@@ -78,8 +111,8 @@ This repo is the **display/UI** for the system monitor. It connects to the `syst
           echo "Press CTRL+C now to stay in terminal."
           sleep 5
           
-          # Run Cage with the kiosk script
-          cage -s -- /home/pi/start_kiosk.sh
+          # Run the kiosk script (it starts Cage automatically if needed)
+          /home/pi/start_kiosk.sh
           
           echo "Kiosk Halted. Restarting in 5s (CTRL+C to stay in terminal)..."
           sleep 5
@@ -100,7 +133,7 @@ This repo is the **display/UI** for the system monitor. It connects to the `syst
     - **DISCONNECTED** / **DISCONNECTED #<n>**: websocket error/close; UI is retrying in the background (with backoff)
 - **Start kiosk now**:
   ```
-  cage -s -- /home/pi/start_kiosk.sh
+  /home/pi/start_kiosk.sh
   ```
 - **Stop kiosk**:
   - Press **Ctrl+C** during the 5-second countdown to stay in terminal
@@ -109,6 +142,11 @@ This repo is the **display/UI** for the system monitor. It connects to the `syst
     /home/pi/stop_kiosk.sh
     ```
   - Or press **Ctrl+C** while kiosk is running (Triggerhappy kills Cage)
+- **Restart kiosk from SSH**:
+  ```
+  /home/pi/restart_kiosk_from_ssh.sh
+  ```
+  - This restarts the local `tty1` session so the kiosk autostart loop runs again.
 - **Logs / output**:
   - Start/stop script output prints to the active console (TTY1)
-  - To view Chromium output, run `/home/pi/start_kiosk.sh` manually
+  - To view Chromium output, run `/home/pi/start_kiosk.sh` manually from local console (TTY1)
