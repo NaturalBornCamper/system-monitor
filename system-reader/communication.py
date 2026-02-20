@@ -4,6 +4,8 @@ from pprint import pprint
 from typing import List, Set, Dict, Union
 
 import socket
+from datetime import datetime
+from pathlib import Path
 import websockets
 from pyrotools.console import cprint, COLORS
 from websockets.protocol import State
@@ -41,6 +43,7 @@ class Client:
 class Server:
     monitor: HardwareMonitor = None
     clients: Dict[WebSocketClientProtocol, Client] = {}
+    log_dir: Path = None
 
     # TODO Not sure how come we have a requested_sensors here since they are normally requested by the client, but I don't like that they are just indexes without keys her. Should be at least a dict. Fix this
     requested_sensors: List[Union[int, str]] = [
@@ -64,6 +67,16 @@ class Server:
     ]
 
     def __init__(self, hardware_monitor: HardwareMonitor):
+        # Keep per-client logs in a dedicated folder.
+        self.log_dir = Path("logs")
+        self.log_dir.mkdir(parents=True, exist_ok=True)
+        # Clear per-client logs on startup to keep writes append-only.
+        for log_file in self.log_dir.glob("*.log"):
+            try:
+                log_file.unlink()
+            except OSError:
+                pass
+
         # Get host IP
         s = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
         s.connect(("8.8.8.8", 80))
@@ -80,6 +93,9 @@ class Server:
 
     async def broadcast(self, websocket: WebSocketClientProtocol) -> None:
         while True:
+            # If the client is already removed, exit quietly.
+            if websocket not in self.clients:
+                return
             if websocket.state == State.CLOSED:
                 cprint(COLORS.YELLOW, "Client disconnected (found out during broadcast iteration)")
                 return await self.disconnect_client(websocket)
@@ -100,9 +116,15 @@ class Server:
 
     async def disconnect_client(self, websocket: WebSocketClientProtocol) -> None:
         if client := self.clients.pop(websocket, None):
+            # Log disconnects to a file to help track hibernate/reconnect cleanup.
+            self.log_event(
+                websocket,
+                f"Disconnect cleanup (clients left: {len(self.clients)})"
+            )
             # TODO Check if any threads were going to send back data to callback for websocket sending
             client.cancel_all_hardware_tasks()
-            client.broadcast_task.cancel()
+            if client.broadcast_task and not client.broadcast_task.done():
+                client.broadcast_task.cancel()
         await websocket.close()
 
     async def periodic(self, websocket: WebSocketClientProtocol, sensor: List[Union[int, str]]) -> None:
@@ -116,20 +138,42 @@ class Server:
         print(f"New client connected {websocket.remote_address}: ", websocket)
         self.clients[websocket] = Client()
         self.clients[websocket].broadcast_task = asyncio.create_task(self.broadcast(websocket))
+        self.log_event(websocket, "Client connected")
 
         # TODO Bug: Exception on line 120 when computer resuming from hibernation (Because client disappeared maybe)
-        async for message in websocket:
-            print('-------------------------MESSAGE RECEIVED----------------------------')
-            data = json.loads(message)
-            pprint(data)
-            if 'action' in data and data['action'] == Actions.SET_SENSORS:
-                self.clients[websocket].cancel_all_hardware_tasks()
-                for sensor in data['requested_sensors']:
-                    self.clients[websocket].hardware_tasks.append(asyncio.create_task(self.periodic(
-                        websocket=websocket,
-                        sensor=sensor
-                    )))
-                print(self.clients[websocket].hardware_tasks)
+        try:
+            async for message in websocket:
+                print('-------------------------MESSAGE RECEIVED----------------------------')
+                data = json.loads(message)
+                pprint(data)
+                if 'action' in data and data['action'] == Actions.SET_SENSORS:
+                    self.clients[websocket].cancel_all_hardware_tasks()
+                    for sensor in data['requested_sensors']:
+                        self.clients[websocket].hardware_tasks.append(asyncio.create_task(self.periodic(
+                            websocket=websocket,
+                            sensor=sensor
+                        )))
+                    print(self.clients[websocket].hardware_tasks)
+        finally:
+            # Always clean up client state, even on abrupt disconnects.
+            await self.disconnect_client(websocket)
+
+    def log_event(self, websocket: WebSocketClientProtocol, message: str) -> None:
+        timestamp = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+        log_path = self.get_log_path(websocket)
+        line = f"{timestamp} {message}\n"
+        # Append-only logging for low overhead.
+        with log_path.open("a", encoding="utf-8", errors="ignore") as handle:
+            handle.write(line)
+
+    def get_log_path(self, websocket: WebSocketClientProtocol) -> Path:
+        # Build a filename from the remote address; fall back to "unknown" if missing.
+        remote = "unknown"
+        if websocket and websocket.remote_address:
+            host, port = websocket.remote_address
+            remote = f"{host}"
+        safe_remote = "".join(ch if ch.isalnum() or ch in "._-" else "_" for ch in str(remote))
+        return self.log_dir / f"{safe_remote}.log"
 
     def callback(self, future: Future = None, websocket: WebSocketClientProtocol = None, sensor: List = None) -> None:
         if future:
