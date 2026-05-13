@@ -7,5 +7,4 @@ pythonnet==3.1.0rc0; python_version >= "3.14"
 # wmi~=1.5.1
 # pyserial~=3.5
 pyrotools~=1.0.1
-# 13.1 is the last low-risk upgrade before the default asyncio API switch in 14.0.
-websockets~=13.1
+websockets~=16.0

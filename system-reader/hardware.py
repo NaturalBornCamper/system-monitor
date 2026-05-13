@@ -14,7 +14,7 @@ import time
 from pyrotools.console import cprint, COLORS
 from collections import defaultdict
 
-from websockets import WebSocketClientProtocol
+from websockets.asyncio.server import ServerConnection
 
 if TYPE_CHECKING:
     from communication import Server
@@ -56,7 +56,7 @@ class HardwareMonitor:
         # "cancel_futures" param was added in Python 3.9, but clr wasn't compiled for Python 3.9 yet, need to wait..
         # self.executor.shutdown(wait=False, cancel_futures=True)
 
-    async def update_if_needed(self, server: 'Server', websocket: WebSocketClientProtocol,
+    async def update_if_needed(self, server: 'Server', websocket: ServerConnection,
                                sensor: List[Union[int, str]]) -> None:
         hardware_id = sensor[Sensor.HARDWARE]
         sub_hardware_id = sensor[Sensor.SUB_HARDWARE]
@@ -85,7 +85,7 @@ class HardwareMonitor:
             # cprint(COLORS.RED, f"HARDWARE ({hardware_id},{sub_hardware_id}) FIRST UPDATE")
             await self.create_update_callback(server, websocket, sensor)
 
-    async def create_update_callback(self, server: 'Server', websocket: WebSocketClientProtocol,
+    async def create_update_callback(self, server: 'Server', websocket: ServerConnection,
                                      sensor: List[Union[int, str]]) -> None:
         hardware_id = sensor[Sensor.HARDWARE]
         sub_hardware_id = sensor[Sensor.SUB_HARDWARE]
@@ -111,8 +111,8 @@ class HardwareMonitor:
 
     # Note: Return type hint is a bit useless here as it will be placed in the "future" object, never
     # called directly. Left it there for reference
-    def updater_thread(self, websocket: WebSocketClientProtocol, sensor: List[Union[int, str]]) \
-            -> Dict[str, Union[List[Union[int, str]], WebSocketClientProtocol]]:
+    def updater_thread(self, websocket: ServerConnection, sensor: List[Union[int, str]]) \
+            -> Dict[str, Union[List[Union[int, str]], ServerConnection]]:
         # print("Executing our Task on Process {}".format(os.getpid()))
         begin = time.time()
         hardware_id = sensor[Sensor.HARDWARE]

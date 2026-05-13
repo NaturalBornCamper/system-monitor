@@ -6,8 +6,9 @@ from typing import List, Set, Dict, Union
 import socket
 from datetime import datetime
 from pathlib import Path
-import websockets
 from pyrotools.console import cprint, COLORS
+from websockets.asyncio.server import ServerConnection, serve
+from websockets.exceptions import ConnectionClosed
 from websockets.protocol import State
 
 from constants import WEBSOCKET_BROADCAST_DELAY_SECONDS, Actions, Sensor
@@ -17,11 +18,6 @@ import concurrent.futures
 from hardware import HardwareMonitor
 from typing import TYPE_CHECKING
 from asyncio.tasks import Task
-
-# Doesn't work anymore, says "'WebSocketClientProtocol' is not defined" with TYPE CHECKING, must absolutely import WebSocketClientProtocol
-# if TYPE_CHECKING:
-#     from websockets import WebSocketClientProtocol
-from websockets import WebSocketClientProtocol
 
 
 class Client:
@@ -42,7 +38,7 @@ class Client:
 
 class Server:
     monitor: HardwareMonitor = None
-    clients: Dict[WebSocketClientProtocol, Client] = {}
+    clients: Dict[ServerConnection, Client] = {}
     log_dir: Path = None
 
     # TODO Not sure how come we have a requested_sensors here since they are normally requested by the client, but I don't like that they are just indexes without keys her. Should be at least a dict. Fix this
@@ -84,14 +80,15 @@ class Server:
         s.close()
 
         self.monitor = hardware_monitor
-        start_server = websockets.serve(self.serve_new_client, ip, 2346)
-        # start_server = websockets.serve(self.serve_new_client, "127.0.0.1", 2346)
-        cprint(COLORS.CYAN, "Listening on port 2346")
+        asyncio.run(self.serve_forever(ip, 2346))
+        # asyncio.run(self.serve_forever("127.0.0.1", 2346))
 
-        asyncio.get_event_loop().run_until_complete(start_server)
-        asyncio.get_event_loop().run_forever()
+    async def serve_forever(self, ip: str, port: int) -> None:
+        cprint(COLORS.CYAN, f"Listening on port {port}")
+        async with serve(self.serve_new_client, ip, port) as websocket_server:
+            await websocket_server.serve_forever()
 
-    async def broadcast(self, websocket: WebSocketClientProtocol) -> None:
+    async def broadcast(self, websocket: ServerConnection) -> None:
         while True:
             # If the client is already removed, exit quietly.
             if websocket not in self.clients:
@@ -107,14 +104,13 @@ class Server:
                 cprint(COLORS.CYAN, serialized_data)
                 try:
                     await websocket.send(serialized_data)
-                except websockets.exceptions.ConnectionClosed:
-                    # except websockets.exceptions.ConnectionClosedError:
+                except ConnectionClosed:
                     cprint(COLORS.YELLOW, "Client disconnected (found out while sending data)")
                     return await self.disconnect_client(websocket)
             # TODO Should specific broadcast delay be requested by client instead?
             await asyncio.sleep(WEBSOCKET_BROADCAST_DELAY_SECONDS)
 
-    async def disconnect_client(self, websocket: WebSocketClientProtocol) -> None:
+    async def disconnect_client(self, websocket: ServerConnection) -> None:
         if client := self.clients.pop(websocket, None):
             # Log disconnects to a file to help track hibernate/reconnect cleanup.
             self.log_event(
@@ -127,14 +123,14 @@ class Server:
                 client.broadcast_task.cancel()
         await websocket.close()
 
-    async def periodic(self, websocket: WebSocketClientProtocol, sensor: List[Union[int, str]]) -> None:
+    async def periodic(self, websocket: ServerConnection, sensor: List[Union[int, str]]) -> None:
         while True:
             await self.monitor.update_if_needed(self, websocket, sensor=sensor)
             # print('periodic sensor', sensor[Sensor.HARDWARE], sensor[Sensor.SUB_HARDWARE], sensor[Sensor.SENSOR])
             # pprint(self.clients[websocket].hardware_tasks)
             await asyncio.sleep(sensor[Sensor.DELAY])
 
-    async def serve_new_client(self, websocket: WebSocketClientProtocol, path: str) -> None:
+    async def serve_new_client(self, websocket: ServerConnection) -> None:
         print(f"New client connected {websocket.remote_address}: ", websocket)
         self.clients[websocket] = Client()
         self.clients[websocket].broadcast_task = asyncio.create_task(self.broadcast(websocket))
@@ -158,7 +154,7 @@ class Server:
             # Always clean up client state, even on abrupt disconnects.
             await self.disconnect_client(websocket)
 
-    def log_event(self, websocket: WebSocketClientProtocol, message: str) -> None:
+    def log_event(self, websocket: ServerConnection, message: str) -> None:
         timestamp = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
         log_path = self.get_log_path(websocket)
         line = f"{timestamp} {message}\n"
@@ -166,7 +162,7 @@ class Server:
         with log_path.open("a", encoding="utf-8", errors="ignore") as handle:
             handle.write(line)
 
-    def get_log_path(self, websocket: WebSocketClientProtocol) -> Path:
+    def get_log_path(self, websocket: ServerConnection) -> Path:
         # Build a filename from the remote address; fall back to "unknown" if missing.
         remote = "unknown"
         if websocket and websocket.remote_address:
@@ -175,7 +171,7 @@ class Server:
         safe_remote = "".join(ch if ch.isalnum() or ch in "._-" else "_" for ch in str(remote))
         return self.log_dir / f"{safe_remote}.log"
 
-    def callback(self, future: Future = None, websocket: WebSocketClientProtocol = None, sensor: List = None) -> None:
+    def callback(self, future: Future = None, websocket: ServerConnection = None, sensor: List = None) -> None:
         if future:
             # cprint(COLORS.BRIGHT_YELLOW, "Future running?", future.running())
             websocket = future.result()['websocket']
