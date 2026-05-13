@@ -1,8 +1,11 @@
 # psutil~=5.7.3
-pythonnet~=2.5.1
+# pythonnet 2.x falls back to a source build on modern Windows/Python setups and fails during its NuGet bootstrap.
+pythonnet~=3.0.5; python_version < "3.14"
+pythonnet==3.1.0rc0; python_version >= "3.14"
 # gputil~=1.4.0
 # tabulate~=0.8.7
 # wmi~=1.5.1
 # pyserial~=3.5
 pyrotools~=1.0.1
-websockets~=8.1
+# 13.1 is the last low-risk upgrade before the default asyncio API switch in 14.0.
+websockets~=13.1

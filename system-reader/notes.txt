@@ -37,7 +37,6 @@ https://stackoverflow.com/a/58373260/1046013
 ====================
 CODEX REVIEW NOTES (2026-01-27)
 ====================
-- Disconnect cleanup may leak clients/tasks: `serve_new_client()` doesn't guarantee `disconnect_client()` runs on exit (no `try/finally`), so `clients[...]` entries + periodic tasks can survive dropped connections / refresh / hibernation.
 - Shared mutable class state: `Server.clients` is a class var, and `HardwareMonitor.executor/update_times/futures` are class vars; fine for 1 instance, surprising if multiple servers/monitors are created (or hot-reloaded).
 - Name collision in `constants.py`: `Sensor = namedtuple(...)` is later overwritten by `class Sensor` (string keys). Works, but easy to misread and breaks type clarity.
 - Type hints mismatch: sensors are annotated as `List[...]` but used like dicts with string keys (`sensor[Sensor.HARDWARE]` etc). Not a runtime bug, but can hide mistakes.
